@@ -68,9 +68,18 @@ $work_status_options = [
     <title>สมัครสมาชิก - Digital Signage</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .auth-card { max-width: 600px; }
+        body{
+             background: #f4f7f6; 
+             font-family: 'Sarabun', sans-serif;
+             display: flex; 
+             justify-content: center; 
+             align-items: center; 
+             min-height: 100vh; }
+        .auth-card { 
+             max-width: 600px; 
+        }
     </style>
 </head>
 <body>

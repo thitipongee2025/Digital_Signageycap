@@ -189,7 +189,8 @@ $playlist_stmt->close();
                 </div>
             <?php endforeach; ?>
         </div>
-    </div> <script>
+    </div> 
+    <script>
         const appContainer = document.getElementById('app-container');
         const infoOverlay = document.getElementById('info-overlay');
         const items = document.querySelectorAll('.content-item');

@@ -1,51 +1,71 @@
 <?php
-// กำหนดค่าการเชื่อมต่อฐานข้อมูล
-$host = "localhost";
-$user = "root"; // ผู้ใช้เริ่มต้นของ XAMPP
-$password = "12345678"; // รหัสผ่านเริ่มต้นของ XAMPP
-$database = "digital_signage_db"; // ชื่อฐานข้อมูล
+// C:\xampp\htdocs\Digital_Signageycap\config.php
 
-// สร้างการเชื่อมต่อ
-$conn = new mysqli($host, $user, $password, $database);
+// 1. เริ่มต้น Session (ต้องอยู่บรรทัดแรกๆ)
+session_start(); 
 
-// ตรวจสอบการเชื่อมต่อ
+// 2. ข้อมูลการเชื่อมต่อฐานข้อมูล (โปรดตรวจสอบค่าเหล่านี้)
+$servername = "localhost"; // หรือ 127.0.0.1
+$username = "root";        // โดยปกติ XAMPP/WAMP จะใช้ root
+$password = "12345678";            // โดยปกติ XAMPP/WAMP จะไม่มีรหัสผ่าน (ถ้ามี ให้ใส่รหัสผ่านของคุณ)
+$dbname = "digital_signage_db"; // ชื่อฐานข้อมูลของคุณ (ตรวจสอบให้ตรง)
+$port = 3306; // Port มาตรฐานของ MySQL/MariaDB (หากมี Error "actively refused" ให้ลองเปลี่ยนเป็น Port ที่ XAMPP ใช้จริง)
+
+// 3. สร้างการเชื่อมต่อ (เกิด Error ที่บรรทัดนี้: LINE 12)
+// ใช้ $port ใน constructor ด้วยเพื่อความแน่ใจ
+$conn = @new mysqli($servername, $username, $password, $dbname, $port); 
+
+// 4. ตรวจสอบการเชื่อมต่อ
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    // ข้อความ Error ที่ปรับปรุงแล้ว
+    die("
+        <h1 style='color: red;'>❌ Connection Failed!</h1>
+        <p><strong>Error:</strong> ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (Target machine actively refused it).</p>
+        <p><strong>สาเหตุที่พบบ่อย:</strong></p>
+        <ul>
+            <li><strong>XAMPP:</strong> โปรดตรวจสอบ <strong>XAMPP Control Panel</strong> และคลิก <strong>Start</strong> ที่บริการ <strong>MySQL/MariaDB</strong> (ต้องเป็นสีเขียว)</li>
+            <li><strong>Port:</strong> โปรดตรวจสอบว่าค่า <strong>\$port</strong> ใน config.php (\$$port) ตรงกับ Port ที่ MySQL กำลังรันอยู่หรือไม่</li>
+            <li><strong>Database Name:</strong> ตรวจสอบว่า <strong>\$dbname</strong> (\$$dbname) สะกดถูกต้อง</li>
+        </ul>
+        <p><strong>รายละเอียด:</strong> " . $conn->connect_error . "</p>
+    ");
 }
 
-// ตั้งค่า Charset เป็น UTF8
-$conn->set_charset("utf8");
+// 5. กำหนดการเข้ารหัสเป็น UTF-8 เพื่อรองรับภาษาไทย
+$conn->set_charset("utf8mb4");
 
-// เริ่ม Session สำหรับระบบ Login
-session_start();
+// ----------------------------------------------------
+// 6. ฟังก์ชันอำนวยความสะดวก
+// ----------------------------------------------------
 
-// ฟังก์ชันตรวจสอบการ Login ของ Admin
+// 6.1 ฟังก์ชันสำหรับฟอร์แมตวันที่และเวลาสำหรับผู้ใช้งาน
+function formatDateTimeUser($datetime) {
+    // ถ้าเป็นค่า NULL หรือค่าเริ่มต้นของ MySQL (0000-00-00 00:00:00) ให้แสดงเป็น "ตลอดไป"
+    if (is_null($datetime) || $datetime === '0000-00-00 00:00:00') {
+        return 'ตลอดไป';
+    }
+    // แปลงรูปแบบวันที่เป็น YYYY-MM-DD HH:MM
+    return date('Y-m-d H:i', strtotime($datetime));
+}
+
+// 6.2 ฟังก์ชันตรวจสอบสิทธิ์ผู้ดูแลระบบ (Admin)
 function checkAdminLogin() {
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-        header("Location: ../index.php"); // ส่งไปหน้า Login
+        // Redirect ไปที่หน้า Login หากไม่ได้เป็น Admin
+        $_SESSION['message'] = ['type' => 'danger', 'text' => 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (Admin Required)'];
+        header("Location: ../index.php"); 
         exit();
     }
 }
 
-/**
- * แปลงรูปแบบวันที่และเวลาจากฐานข้อมูล (Y-m-d H:i:s)
- * ให้อยู่ในรูปแบบที่ผู้ใช้มองเห็นได้ง่ายขึ้น
- * @param string|null $datetime_str วันที่และเวลา
- * @return string
- */
-function formatDateTimeUser($datetime_str) {
-    if (empty($datetime_str)) {
-        return '- (ไม่กำหนด) -';
-    }
-    // ใช้ DateTime เพื่อจัดรูปแบบ
-    try {
-        $datetime = new DateTime($datetime_str);
-        // รูปแบบ เช่น 15 ธ.ค. 2568 14:30
-        return $datetime->format('d M Y H:i');
-    } catch (Exception $e) {
-        // หากรูปแบบผิดพลาด
-        return $datetime_str; 
+// 6.3 ฟังก์ชันตรวจสอบสิทธิ์ผู้ใช้งานทั่วไป (User)
+function checkUserLogin() {
+    // ตรวจสอบว่ามีการ Login และเป็นบทบาท 'user' หรือไม่
+    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
+        // Redirect ไปที่หน้า Login หากไม่ได้เป็น User
+        $_SESSION['message'] = ['type' => 'danger', 'text' => 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (User Required)'];
+        header("Location: ../index.php"); 
+        exit();
     }
 }
-
 ?>
