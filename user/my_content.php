@@ -42,60 +42,6 @@ if (isset($_SESSION['user_id'])) {
     }
     $user_stmt->close();
 }
-
-// ดึงรายการอุปกรณ์ที่ User นี้มีสิทธิ์เข้าใช้งาน
-$devices_sql = "
-    SELECT d.device_id, d.device_name 
-    FROM devices d
-    JOIN user_permissions up ON d.device_id = up.device_id
-    WHERE up.user_id = ?
-    ORDER BY d.device_name
-";
-$devices_stmt = $conn->prepare($devices_sql);
-$devices_stmt->bind_param("i", $user_id);
-$devices_stmt->execute();
-$devices_result = $devices_stmt->get_result();
-$allowed_device_ids = [];
-while($row = $devices_result->fetch_assoc()) {
-    $allowed_device_ids[] = $row['device_id'];
-}
-$devices_stmt->close();
-
-// ดึง Content ทั้งหมดที่ User นี้อัพโหลดไปในอุปกรณ์ที่เขามีสิทธิ์
-if (!empty($allowed_device_ids)) {
-    $placeholders = implode(',', array_fill(0, count($allowed_device_ids), '?'));
-    $content_sql = "
-        SELECT 
-            c.content_id, 
-            c.filename, 
-            c.content_type,
-            c.start_date,
-            c.end_date,
-            GROUP_CONCAT(d.device_name SEPARATOR ', ') AS assigned_devices
-        FROM 
-            contents c
-        JOIN 
-            device_content dc ON c.content_id = dc.content_id
-        JOIN 
-            devices d ON dc.device_id = d.device_id
-        WHERE 
-            c.upload_by = ? 
-            AND dc.device_id IN ($placeholders)
-        GROUP BY 
-            c.content_id
-        ORDER BY 
-            c.content_id DESC
-    ";
-    $content_stmt = $conn->prepare($content_sql);
-    $params = array_merge([$user_id], $allowed_device_ids);
-    $types = str_repeat('i', count($params));
-    $content_stmt->bind_param($types, ...$params);
-    $content_stmt->execute();
-    $content_result = $content_stmt->get_result();
-    $content_stmt->close();
-} else {
-    $content_result = null;
-}
 ?>
 
 <!DOCTYPE html>
@@ -190,6 +136,61 @@ if (!empty($allowed_device_ids)) {
             background-color: #495057; 
             margin: 15px 10px 20px 10px; 
         }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-decoration: none;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            color: #333;
+        }
+
+        .dashboard-card i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #1abc9c;
+        }
+
+        .dashboard-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .dashboard-card p {
+            color: #666;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .dashboard-card.content {
+            border-left: 4px solid #1abc9c;
+        }
+
+        .dashboard-card.upload {
+            border-left: 4px solid #28a745;
+        }
+
+        .dashboard-card.device {
+            border-left: 4px solid #007bff;
+        }
     </style>
 </head>
 <body>
@@ -205,65 +206,37 @@ if (!empty($allowed_device_ids)) {
             <hr class="sidebar-divider">
             
            <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link active" href="index.php">📊 Content ของฉัน</a></li>
+                <li class="nav-item"><a class="nav-link active" href="index.php">🏠 Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="my_content.php">📊 Content ของฉัน</a></li>
                 <li class="nav-item"><a class="nav-link" href="upload.php">⬆️ อัพโหลด Content ใหม่</a></li>
                 <li class="nav-item"><a class="nav-link" href="device_status.php">💻 สถานะอุปกรณ์ที่ได้รับสิทธิ์</a></li>
                 <li class="nav-item"><a class="nav-link" href="../logout.php">🚪 ออกจากระบบ</a></li>
             </ul>
         </div>
         <div class="content-area">
-            <h1 class="mb-4 text-primary"><i class="bi bi-speedometer2"></i> Content ของฉัน</h1>
+            <h1 class="mb-2 text-primary"><i class="bi bi-house-door"></i> Dashboard</h1>
+            <p class="text-muted mb-4">ยินดีต้อนรับกลับมา, <?php echo htmlspecialchars($logged_in_user['fullname']); ?>!</p>
+            
             <?php echo $message; ?>
-            <div class="mb-4">
-                <a href="upload.php" class="btn btn-success"><i class="bi bi-plus-circle"></i> อัพโหลด Content ใหม่</a>
-            </div>
 
-            <div class="card shadow">
-                <div class="card-header card-header-custom">
-                    รายการ Content ที่แสดงผลอยู่ในอุปกรณ์ของคุณ
-                </div>
-                <div class="card-body">
-                    <?php if (empty($allowed_device_ids)): ?>
-                        <div class="alert alert-warning">คุณยังไม่ได้รับสิทธิ์ให้เข้าถึงอุปกรณ์ใดๆ กรุณาติดต่อ Admin</div>
-                    <?php endif; ?>
+            <div class="dashboard-grid">
+                <a href="my_content.php" class="dashboard-card content">
+                    <i class="bi bi-film"></i>
+                    <h3>Content ของฉัน</h3>
+                    <p>ดูและจัดการไฟล์ที่คุณอัพโหลด</p>
+                </a>
 
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>ชื่อไฟล์</th>
-                                <th>ประเภท</th>
-                                <th>แสดงบนอุปกรณ์</th>
-                                <th>เริ่ม</th>
-                                <th>สิ้นสุด</th>
-                                <th>จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($allowed_device_ids) && $content_result && $content_result->num_rows > 0): ?>
-                                <?php $i = 1; while($row = $content_result->fetch_assoc()): ?>
-                                    <tr>
-                                        <td><?php echo $i++; ?></td>
-                                        <td><?php echo htmlspecialchars($row['filename']); ?></td>
-                                        <td><span class="badge bg-info text-dark"><?php echo ucfirst($row['content_type']); ?></span></td>
-                                        <td><?php echo htmlspecialchars($row['assigned_devices']); ?></td>
-                                        <td><?php echo $row['start_date'] ? date('d/m/Y H:i', strtotime($row['start_date'])) : '-'; ?></td>
-                                        <td><?php echo $row['end_date'] ? date('d/m/Y H:i', strtotime($row['end_date'])) : '-'; ?></td>
-                                        <td>
-                                            <a href="delete_content.php?id=<?php echo $row['content_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('คุณแน่ใจหรือไม่ที่จะลบไฟล์นี้จาก Playlist?')" title="ลบ">
-                                                <i class="bi bi-trash"></i> ลบ
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="7" class="text-center">ไม่พบ Content ที่คุณอัพโหลดในอุปกรณ์ที่ได้รับสิทธิ์</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                <a href="upload.php" class="dashboard-card upload">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    <h3>อัพโหลด Content ใหม่</h3>
+                    <p>เพิ่มไฟล์วิดีโอหรือภาพ</p>
+                </a>
+
+                <a href="device_status.php" class="dashboard-card device">
+                    <i class="bi bi-display"></i>
+                    <h3>สถานะอุปกรณ์</h3>
+                    <p>ดูอุปกรณ์ที่คุณมีสิทธิ์ใช้งาน</p>
+                </a>
             </div>
         </div>
     </div>
@@ -272,4 +245,3 @@ if (!empty($allowed_device_ids)) {
 </body>
 </html>
 <?php $conn->close(); ?>
-

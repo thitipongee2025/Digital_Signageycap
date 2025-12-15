@@ -13,7 +13,7 @@ if (isset($_SESSION['message'])) {
     unset($_SESSION['message']);
 }
 
-// --- ดึงข้อมูลผู้ใช้งานที่ล็อกอินจริง (Code จาก user/index.php) ---
+// --- ดึงข้อมูลผู้ใช้งานที่ล็อกอินจริง ---
 $logged_in_user = [
     'fullname' => 'ไม่ระบุชื่อ',
     'position' => 'ไม่ระบุตำแหน่ง',
@@ -23,7 +23,6 @@ $logged_in_user = [
 if (isset($_SESSION['user_id'])) {
     $user_id_session = $_SESSION['user_id'];
     
-    // ดึง fullname
     $user_sql = "SELECT fullname FROM users WHERE user_id = ?";
     $user_stmt = $conn->prepare($user_sql);
     $user_stmt->bind_param("i", $user_id_session);
@@ -32,7 +31,7 @@ if (isset($_SESSION['user_id'])) {
     
     if ($user_data = $user_result->fetch_assoc()) {
         $logged_in_user['fullname'] = htmlspecialchars($user_data['fullname']);
-        $logged_in_user['position'] = 'ผู้ใช้งานทั่วไป'; // กำหนดตำแหน่ง
+        $logged_in_user['position'] = 'ผู้ใช้งานทั่วไป';
         
         $initials = '';
         if (!empty($user_data['fullname'])) {
@@ -43,7 +42,6 @@ if (isset($_SESSION['user_id'])) {
     }
     $user_stmt->close();
 }
-// --- สิ้นสุดส่วนดึงข้อมูล ---
 
 // ดึงรายการอุปกรณ์ที่ User นี้มีสิทธิ์เข้าใช้งาน พร้อมสถานะ
 $devices_sql = "
@@ -116,7 +114,6 @@ $devices_stmt->close();
             font-weight: 600;
         }
         
-        /* --- CSS สำหรับ Profile --- */
         .user-profile {
             padding: 15px 10px; 
             text-align: center;
@@ -157,12 +154,22 @@ $devices_stmt->close();
             font-style: italic;
         }
         
-        /* สไตล์สำหรับเส้นแบ่ง */
         .sidebar-divider {
             border: 0;
             height: 1px;
             background-color: #495057; 
             margin: 15px 10px 20px 10px; 
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .action-buttons a {
+            margin: 2px;
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -205,6 +212,7 @@ $devices_stmt->close();
                                     <th>ตำแหน่งติดตั้ง</th>
                                     <th>สถานะปัจจุบัน</th>
                                     <th>Content ใน Playlist</th>
+                                    <th>จัดการ</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -219,6 +227,13 @@ $devices_stmt->close();
                                             </span>
                                         </td>
                                         <td><span class="badge bg-primary"><?php echo $row['total_content']; ?> รายการ</span></td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <a href="playlist_preview.php?device_id=<?php echo $row['device_id']; ?>" class="btn btn-sm btn-info" title="ดูเพลยลิสต์">
+                                                    <i class="bi bi-play-circle"></i> ดูเพลยลิสต์
+                                                </a>
+                                            </div>
+                                        </td>
                                     </tr>
                                 <?php endwhile; ?>
                             </tbody>
