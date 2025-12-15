@@ -193,3 +193,4 @@ function getDevicesForContent($conn, $content_id) {
 </body>
 </html>
 <?php $conn->close(); ?>
+

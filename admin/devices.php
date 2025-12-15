@@ -219,3 +219,4 @@ $devices_result = $conn->query("SELECT * FROM devices ORDER BY device_name ASC")
 </body>
 </html>
 <?php $conn->close(); ?>
+

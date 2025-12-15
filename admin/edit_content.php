@@ -312,3 +312,4 @@ $current_duration = $content['duration_seconds'] ?? 10;
 </body>
 </html>
 <?php $conn->close(); ?>
+

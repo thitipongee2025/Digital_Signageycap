@@ -292,3 +292,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
 </body>
 </html>
 <?php $conn->close(); ?>
+

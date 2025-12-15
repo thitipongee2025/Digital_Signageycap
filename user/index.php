@@ -269,3 +269,4 @@ if (!empty($allowed_device_ids)) {
 </body>
 </html>
 <?php $conn->close(); ?>
+
