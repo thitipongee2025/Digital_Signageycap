@@ -1,5 +1,5 @@
 <?php
-// admin/add_user.php - เพิ่มสมาชิกใหม่
+// admin/add_content.php - อัพโหลด Content ใหม่
 include '../config.php';
 checkAdminLogin();
 
@@ -42,78 +42,117 @@ if (isset($_SESSION['user_id'])) {
     $user_stmt->close();
 }
 
-// --- Process Form Submission ---
+$devices_result = $conn->query("SELECT * FROM devices ORDER BY device_name");
 $message = '';
-$error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
+    $target_dir = "../assets/uploads/";
+    $original_filename = basename($_FILES["content_file"]["name"]);
+    $file_extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
+    $new_filename = time() . '_' . $original_filename;
+    $target_file = $target_dir . $new_filename;
     
-    // รับค่าจากฟอร์ม
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    $fullname = trim($_POST['fullname']);
-    $work_status = $_POST['work_status'];
-    $position = trim($_POST['position']);
-    $agency = trim($_POST['agency']);
-    $role = $_POST['role'];
+    $duration_seconds = $_POST['duration_seconds'] ?? 10;
     
-    // Validation
-    if (empty($username) || empty($password) || empty($fullname)) {
-        $error = 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน';
-    } elseif ($password !== $confirm_password) {
-        $error = 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน';
-    } elseif (strlen($password) < 6) {
-        $error = 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+    $start_date_only = $_POST['start_date_only'] ?? '';
+    $start_time_only = $_POST['start_time_only'] ?? '00:00';
+    $end_date_only = $_POST['end_date_only'] ?? '';
+    $end_time_only = $_POST['end_time_only'] ?? '00:00';
+
+    $start_date_str = empty($start_date_only) ? null : $start_date_only . ' ' . $start_time_only;
+    $end_date_str = empty($end_date_only) ? null : $end_date_only . ' ' . $end_time_only;
+    
+    $selected_devices = isset($_POST['devices']) ? $_POST['devices'] : [];
+
+    $allowed_video = ['mp4', 'webm', 'ogg'];
+    $allowed_image = ['jpg', 'jpeg', 'png', 'gif'];
+
+    if (in_array($file_extension, $allowed_video)) {
+        $content_type = 'video';
+        $duration_seconds = 0; 
+    } elseif (in_array($file_extension, $allowed_image)) {
+        $content_type = 'image';
     } else {
-        // ตรวจสอบว่า username ซ้ำหรือไม่
-        $check_sql = "SELECT user_id FROM users WHERE username = ?";
-        $check_stmt = $conn->prepare($check_sql);
-        $check_stmt->bind_param("s", $username);
-        $check_stmt->execute();
-        $check_result = $check_stmt->get_result();
-        
-        if ($check_result->num_rows > 0) {
-            $error = 'ชื่อผู้ใช้นี้มีในระบบแล้ว กรุณาเลือกชื่อผู้ใช้อื่น';
-            $check_stmt->close();
-        } else {
-            $check_stmt->close();
-            
-            // Hash password
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
-            // Insert ข้อมูล
-            $insert_sql = "INSERT INTO users (username, password, fullname, work_status, position, agency, role, created_at) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
-            $insert_stmt = $conn->prepare($insert_sql);
-            $insert_stmt->bind_param("sssssss", $username, $hashed_password, $fullname, $work_status, $position, $agency, $role);
-            
-            if ($insert_stmt->execute()) {
-                $message = '<div class="alert alert-success"><i class="bi bi-check-circle-fill"></i> เพิ่มสมาชิกสำเร็จ!</div>';
-                // Clear form
-                $username = $fullname = $work_status = $position = $agency = '';
-            } else {
-                $error = 'เกิดข้อผิดพลาด: ' . $insert_stmt->error;
-            }
-            $insert_stmt->close();
+        $message = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> ไม่รองรับประเภทไฟล์นี้</div>';
+    }
+
+    if (!isset($content_type)) goto end_upload; 
+
+    if (!is_dir($target_dir)) {
+        if (!mkdir($target_dir, 0777, true)) { 
+            $message = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> ไม่สามารถสร้างโฟลเดอร์อัพโหลดได้</div>';
+            goto end_upload;
         }
     }
     
-    if (!empty($error)) {
-        $message = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> ' . $error . '</div>';
+    if ($_FILES["content_file"]["error"] !== UPLOAD_ERR_OK) {
+        $error_code = $_FILES["content_file"]["error"];
+        $message = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> เกิดข้อผิดพลาดในการอัพโหลด (Code: ' . $error_code . ')</div>';
+        goto end_upload;
+    }
+
+    if (move_uploaded_file($_FILES["content_file"]["tmp_name"], $target_file)) {
+        
+        $sql = "INSERT INTO contents (filename, filepath, content_type, upload_by, duration_seconds, start_date, end_date) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $conn->prepare($sql);
+        
+        $start_date_db = $start_date_str ? date('Y-m-d H:i:s', strtotime($start_date_str)) : null;
+        $end_date_db = $end_date_str ? date('Y-m-d H:i:s', strtotime($end_date_str)) : null;
+        
+        $stmt->bind_param("sssiiss", $original_filename, $new_filename, $content_type, $_SESSION['user_id'], $duration_seconds, $start_date_db, $end_date_db);
+        
+        if ($stmt->execute()) {
+            $content_id = $conn->insert_id;
+            
+            $devices_to_insert = [];
+            
+            if (in_array('all_devices', $selected_devices)) {
+                $all_devices_result = $conn->query("SELECT device_id FROM devices");
+                while ($dev = $all_devices_result->fetch_assoc()) {
+                    $devices_to_insert[] = $dev['device_id'];
+                }
+            } else {
+                $devices_to_insert = $selected_devices;
+            }
+
+            if (!empty($devices_to_insert)) {
+                $insert_dc_sql = "INSERT INTO device_content (device_id, content_id, display_order) 
+                                  SELECT ?, ?, IFNULL(MAX(display_order), 0) + 1 
+                                  FROM device_content WHERE device_id = ?";
+                $stmt_dc = $conn->prepare($insert_dc_sql);
+
+                foreach ($devices_to_insert as $device_id) {
+                    if (is_numeric($device_id)) {
+                        $stmt_dc->bind_param("iii", $device_id, $content_id, $device_id);
+                        $stmt_dc->execute();
+                    }
+                }
+                $stmt_dc->close();
+            }
+
+            $message = '<div class="alert alert-success"><i class="bi bi-check-circle-fill"></i> อัพโหลด Content สำเร็จ!</div>';
+        } else {
+            $message = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> Error: ' . $stmt->error . '</div>';
+        }
+        $stmt->close();
+    } else {
+        $message = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> เกิดข้อผิดพลาดในการอัพโหลดไฟล์</div>';
     }
 }
+end_upload:
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เพิ่มสมาชิก - Digital Signage</title>
+    <title>อัพโหลด Content - Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="../assets/css/responsive_admin.css" rel="stylesheet">
+    <link href="../assets/css/admin.css" rel="stylesheet">
 </head>
 <body>
     <!-- Mobile Menu Toggle -->
@@ -143,153 +182,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_user'])) {
             
             <ul class="nav flex-column">
                 <li class="nav-item"><a class="nav-link" href="index.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="contents.php"><i class="bi bi-folder2-open"></i> จัดการ Content</a></li>
+                <li class="nav-item"><a class="nav-link active" href="contents.php"><i class="bi bi-folder2-open"></i> จัดการ Content</a></li>
                 <li class="nav-item"><a class="nav-link" href="devices.php"><i class="bi bi-tv"></i> จัดการอุปกรณ์</a></li>
                 <li class="nav-item"><a class="nav-link" href="users.php"><i class="bi bi-people"></i> จัดการสมาชิก</a></li>
-                <li class="nav-item"><a class="nav-link active" href="add_user.php"><i class="bi bi-people"></i> ลงทะเบียนสมาชิก</a></li>
                 <li class="nav-item"><a class="nav-link" href="user_roles.php"><i class="bi bi-key"></i> จัดการสิทธิ์</a></li>
                 <li class="nav-item"><a class="nav-link" href="../logout.php"><i class="bi bi-box-arrow-right"></i> ออกจากระบบ</a></li>
             </ul>
         </div>
 
         <div class="content-area" id="contentArea">
-            <h1 class="mb-4 page-title"><i class="bi bi-person-plus-fill"></i> เพิ่มสมาชิกใหม่</h1>
-            
+            <h1 class="mb-4 page-title"><i class="bi bi-plus-circle-fill"></i> อัพโหลด Content ใหม่</h1>
             <?php echo $message; ?>
-
+            
             <div class="card shadow border-0">
                 <div class="card-header card-header-custom">
-                    <i class="bi bi-person-badge me-2"></i> ข้อมูลสมาชิก
+                    <i class="bi bi-cloud-upload-fill me-2"></i> ข้อมูล Content
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="add_user.php">
+                    <form action="add_content.php" method="POST" enctype="multipart/form-data">
+
+                        <div class="mb-4">
+                            <label for="content_file" class="form-label fw-bold">
+                                <i class="bi bi-file-earmark-arrow-up"></i> เลือกไฟล์
+                            </label>
+                            <input type="file" class="form-control" id="content_file" name="content_file" accept=".mp4,.webm,.ogg,.jpg,.jpeg,.png,.gif" required>
+                            <small class="form-text text-muted">รองรับ: MP4, WebM, OGG, JPG, PNG, GIF</small>
+                        </div>
                         
-                        <h5 class="border-bottom pb-2 mb-3 text-info">
-                            <i class="bi bi-shield-lock"></i> ข้อมูลการเข้าสู่ระบบ
+                        <div class="mb-4">
+                            <label for="duration_seconds" class="form-label fw-bold">
+                                <i class="bi bi-clock"></i> กำหนดเวลาเล่น (วินาที)
+                            </label>
+                            <input type="number" class="form-control" id="duration_seconds" name="duration_seconds" min="0" value="10" required>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> แนะนำ 10 วินาที สำหรับภาพ, 0 สำหรับวิดีโอ
+                            </small>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 border-bottom pb-2 text-info">
+                            <i class="bi bi-clock-history"></i> ช่วงเวลาแสดงผล
                         </h5>
                         
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
-                                <label for="username" class="form-label fw-bold">
-                                    <i class="bi bi-person-circle"></i> ชื่อผู้ใช้ (Username) <span class="text-danger">*</span>
-                                </label>
-                                <input type="text" class="form-control" id="username" name="username" 
-                                       value="<?php echo isset($username) ? htmlspecialchars($username) : ''; ?>" 
-                                       placeholder="ตัวอย่าง: john.doe" required>
-                                <small class="form-text text-muted">ใช้สำหรับเข้าสู่ระบบ</small>
+                                <label class="form-label fw-bold">วันที่และเวลาเริ่มแสดงผล</label>
+                                <div class="row g-2">
+                                    <div class="col-7">
+                                        <input type="date" class="form-control" id="start_date_only" name="start_date_only">
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="time" class="form-control" id="start_time_only" name="start_time_only" value="00:00">
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">(ปล่อยว่าง = แสดงทันที)</small>
                             </div>
                             
                             <div class="col-12 col-md-6">
-                                <label for="role" class="form-label fw-bold">
-                                    <i class="bi bi-award"></i> สิทธิ์การใช้งาน <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select" id="role" name="role" required>
-                                    <option value="user" selected>User (ผู้ใช้ทั่วไป)</option>
-                                    <option value="admin">Admin (ผู้ดูแลระบบ)</option>
-                                </select>
+                                <label class="form-label fw-bold">วันที่และเวลาสิ้นสุด</label>
+                                <div class="row g-2">
+                                    <div class="col-7">
+                                        <input type="date" class="form-control" id="end_date_only" name="end_date_only">
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="time" class="form-control" id="end_time_only" name="end_time_only" value="00:00">
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">(ปล่อยว่าง = แสดงตลอดไป)</small>
                             </div>
                         </div>
 
-                        <div class="row g-3 mt-2">
-                            <div class="col-12 col-md-6">
-                                <label for="password" class="form-label fw-bold">
-                                    <i class="bi bi-key"></i> รหัสผ่าน <span class="text-danger">*</span>
-                                </label>
-                                <input type="password" class="form-control" id="password" name="password" 
-                                       placeholder="อย่างน้อย 6 ตัวอักษร" minlength="6" required>
-                            </div>
-                            
-                            <div class="col-12 col-md-6">
-                                <label for="confirm_password" class="form-label fw-bold">
-                                    <i class="bi bi-key-fill"></i> ยืนยันรหัสผ่าน <span class="text-danger">*</span>
-                                </label>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
-                                       placeholder="กรอกรหัสผ่านอีกครั้ง" minlength="6" required>
-                            </div>
-                        </div>
-
-                        <h5 class="border-bottom pb-2 mb-3 mt-5 text-info">
-                            <i class="bi bi-person-vcard"></i> ข้อมูลส่วนตัว
+                        <h5 class="mt-5 mb-3 border-bottom pb-2 text-info">
+                            <i class="bi bi-list-task"></i> อุปกรณ์เป้าหมาย
                         </h5>
-
-                        <div class="row g-3">
-                            <div class="col-12 col-md-6">
-                                <label for="fullname" class="form-label fw-bold">
-                                    <i class="bi bi-person"></i> ชื่อ-นามสกุล <span class="text-danger">*</span>
-                                </label>
-                                <input type="text" class="form-control" id="fullname" name="fullname" 
-                                       value="<?php echo isset($fullname) ? htmlspecialchars($fullname) : ''; ?>" 
-                                       placeholder="ตัวอย่าง: นายสมชาย ใจดี" required>
-                            </div>
-
-                            <div class="col-12 col-md-6">
-                                <label for="work_status" class="form-label fw-bold">
-                                    <i class="bi bi-briefcase"></i> สถานะปฏิบัติงาน
-                                </label>
-                                <select class="form-select" id="work_status" name="work_status">
-                                    <option value="ข้าราชการ">ข้าราชการ</option>
-                                    <option value="พนักงานราชการ">พนักงานราชการ</option>
-                                    <option value="พนักงานกระทรวงสาธารณสุข">พนักงานกระทรวงสาธารณสุข</option>
-                                    <option value="ลูกจ้างประจำ">ลูกจ้างประจำ</option>
-                                    <option value="ลูกจ้างชั่วคราว">ลูกจ้างชั่วคราว</option>
-                                    <option value="พนักงานโครงการจ้างงาน">พนักงานโครงการจ้างงาน</option>
-                                </select>
-                            </div>
+                        
+                        <div class="mb-4">
+                            <select multiple class="form-select" id="devices" name="devices[]" size="8" required>
+                                <option value="all_devices" class="fw-bold text-primary" selected>-- เล่นบนทุกอุปกรณ์ --</option>
+                                <?php 
+                                if ($devices_result->num_rows > 0) {
+                                    $devices_result->data_seek(0);
+                                }
+                                while($device = $devices_result->fetch_assoc()) {
+                                    echo '<option value="' . $device['device_id'] . '">&#128205; ' . htmlspecialchars($device['device_name']) . ' (' . htmlspecialchars($device['location']) . ')</option>';
+                                }
+                                ?>
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> กด Ctrl/Cmd เพื่อเลือกหลายอุปกรณ์
+                            </small>
                         </div>
 
-                        <div class="row g-3 mt-2">
-                            <div class="col-12 col-md-6">
-                                <label for="position" class="form-label fw-bold">
-                                    <i class="bi bi-bookmark"></i> ตำแหน่ง
-                                </label>
-                                <input type="text" class="form-control" id="position" name="position" 
-                                       value="<?php echo isset($position) ? htmlspecialchars($position) : ''; ?>" 
-                                       placeholder="ตัวอย่าง: นักวิชาการคอมพิวเตอร์">
-                            </div>
-
-                            <div class="col-12 col-md-6">
-                                <label for="agency" class="form-label fw-bold">
-                                    <i class="bi bi-building"></i> หน่วยงาน
-                                </label>
-                                <input type="text" class="form-control" id="agency" name="agency" 
-                                       value="<?php echo isset($agency) ? htmlspecialchars($agency) : ''; ?>" 
-                                       placeholder="ตัวอย่าง: กองเทคโนโลยีสารสนเทศ">
-                            </div>
-                        </div>
-
-                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2 pt-4 mt-4 border-top">
-                            <button type="submit" name="add_user" class="btn btn-success btn-lg">
-                                <i class="bi bi-person-plus"></i> เพิ่มสมาชิก
+                        <div class="d-flex flex-column flex-md-row justify-content-end gap-2 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-upload"></i> อัพโหลดและบันทึก
                             </button>
-                            <a href="users.php" class="btn btn-secondary btn-lg">
+                            <a href="contents.php" class="btn btn-secondary btn-lg">
                                 <i class="bi bi-x-circle"></i> ยกเลิก
                             </a>
                         </div>
                     </form>
                 </div>
             </div>
-             <div class="footer-content-area">
-                <h6>&copy; จัดทำโดย นายฐิติพงศ์ ภาสวร โครงการทดลองจ้างงานบุคคลออทิสติก รุ่นที่13</h6>
-            </div> 
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/responsive_sidebar.js"></script>
     <script>
-        // ตรวจสอบรหัสผ่านตรงกันหรือไม่
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
+        document.getElementById('devices').addEventListener('change', function() {
+            const allDevicesOption = this.querySelector('option[value="all_devices"]');
             
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
-                document.getElementById('confirm_password').focus();
+            const otherSelected = Array.from(this.options).some(option => 
+                option.selected && option.value !== 'all_devices' && option.value !== ''
+            );
+            
+            if (allDevicesOption.selected && otherSelected) {
+                allDevicesOption.selected = false;
+            } 
+            
+            const nothingSelected = Array.from(this.options).every(option => !option.selected || option.value === '');
+            if (nothingSelected) {
+                allDevicesOption.selected = true;
             }
         });
     </script>
 </body>
 </html>
 <?php $conn->close(); ?>
-

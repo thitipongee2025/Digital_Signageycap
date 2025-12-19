@@ -1,38 +1,32 @@
 <?php
+// admin/device_playlist.php - ระบบเล่น Playlist หน้าจอ (ปรับปรุง)
 include '../config.php';
-// ตรวจสอบ Login และสิทธิ์ User
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
-    header("Location: ../index.php");
-    exit();
-}
 
-$user_id = $_SESSION['user_id'];
 $device_id = isset($_GET['device_id']) ? (int)$_GET['device_id'] : 0;
 
-// ตรวจสอบว่า user มีสิทธิ์ในอุปกรณ์นี้หรือไม่
-$check_permission_sql = "
-    SELECT d.device_id, d.device_name, d.location 
-    FROM devices d
-    JOIN user_permissions up ON d.device_id = up.device_id
-    WHERE d.device_id = ? AND up.user_id = ?
-";
-$check_stmt = $conn->prepare($check_permission_sql);
-$check_stmt->bind_param("ii", $device_id, $user_id);
-$check_stmt->execute();
-$device_result = $check_stmt->get_result();
-$device_info = $device_result->fetch_assoc();
-$check_stmt->close();
-
-if (!$device_info || $device_id === 0) {
-    $_SESSION['message'] = ['type' => 'danger', 'text' => 'ไม่พบอุปกรณ์หรือคุณไม่มีสิทธิ์'];
-    header("Location: device_status.php");
+if ($device_id === 0) {
+    header("Location: devices.php");
     exit();
 }
 
-// ดึง Content สำหรับ Playlist
-// เงื่อนไข: 
-// 1. เชื่อมกับ device_content ด้วย device_id 
-// 2. เวลาปัจจุบันอยู่ระหว่าง start_date และ end_date (ถ้ามีการตั้งค่า)
+// 1. ดึงข้อมูลอุปกรณ์
+$device_sql = "SELECT device_id, device_name, location FROM devices WHERE device_id = ?";
+$device_stmt = $conn->prepare($device_sql);
+$device_stmt->bind_param("i", $device_id);
+$device_stmt->execute();
+$device_result = $device_stmt->get_result();
+$device_info = $device_result->fetch_assoc();
+$device_stmt->close();
+
+if (!$device_info) {
+    die("ไม่พบอุปกรณ์ ID: " . $device_id);
+}
+
+// 2. ดึง Content สำหรับ Playlist พร้อมข้อมูล upload_by
+// เงื่อนไข:
+// 1. เชื่อมกับ device_content ด้วย device_id
+// 2. เวลาปัจจุบันอยู่ระหว่าง start_date และ end_date
+// 3. ดึงข้อมูลผู้อัพโหลดด้วย
 $current_time = date('Y-m-d H:i:s');
 
 $playlist_sql = "
@@ -42,14 +36,17 @@ $playlist_sql = "
         c.filepath, 
         c.content_type, 
         c.duration_seconds,
-        dc.display_order
+        c.upload_by,
+        dc.display_order,
+        u.fullname as uploader_name
     FROM 
         device_content dc
     JOIN 
         contents c ON dc.content_id = c.content_id
+    JOIN
+        users u ON c.upload_by = u.user_id
     WHERE 
         dc.device_id = ? 
-        AND c.upload_by = ?
         AND (
             (c.start_date IS NULL OR c.start_date <= ?)
             AND (c.end_date IS NULL OR c.end_date >= ?)
@@ -59,7 +56,7 @@ $playlist_sql = "
 ";
 
 $playlist_stmt = $conn->prepare($playlist_sql);
-$playlist_stmt->bind_param("iiss", $device_id, $user_id, $current_time, $current_time);
+$playlist_stmt->bind_param("iss", $device_id, $current_time, $current_time);
 $playlist_stmt->execute();
 $playlist_result = $playlist_stmt->get_result();
 $playlist_items = $playlist_result->fetch_all(MYSQLI_ASSOC);
@@ -71,7 +68,7 @@ $playlist_stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Playlist Preview: <?php echo htmlspecialchars($device_info['device_name']); ?></title>
+    <title>Playlist: <?php echo htmlspecialchars($device_info['device_name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -148,8 +145,16 @@ $playlist_stmt->close();
             z-index: 101;
         }
 
-        .no-content-message {
-            text-align: center;
+        .uploader-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #aaa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            z-index: 99;
         }
     </style>
 </head>
@@ -163,39 +168,37 @@ $playlist_stmt->close();
         <div id="info-overlay" class="info-overlay">
             
             <div id="info-overlay-content" class="info-overlay-content">
-                <strong>Playlist Preview</strong><br>
-                🖥️ <strong><?php echo htmlspecialchars($device_info['device_name']); ?></strong><br>
-                📍 <?php echo htmlspecialchars($device_info['location']); ?><br>
-                Content ที่กำลังเล่น: <span id="content-count"><?php echo count($playlist_items); ?></span> รายการ
+                <strong>📺 <?php echo htmlspecialchars($device_info['device_name']); ?></strong> 
+                (<?php echo htmlspecialchars($device_info['location']); ?>)<br>
+                จำนวน Content: <span id="content-count"><?php echo count($playlist_items); ?></span> รายการ
                 
-                <br><br>
-                
-                <button id="fullscreen-btn" class="btn btn-sm btn-outline-warning ms-0 me-2">
+                <button id="fullscreen-btn" class="btn btn-sm btn-outline-warning ms-2 me-1">
                     <i class="bi bi-arrows-fullscreen"></i> เต็มจอ
                 </button>
                 
-                <a href="device_status.php" class="btn btn-sm btn-outline-light">
-                    <i class="bi bi-x-circle"></i> ปิด Preview
+                <a href="devices.php" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-x-circle"></i> ปิด
                 </a>
             </div>
             
         </div>
 
+        <!-- แสดงผู้อัพโหลด Content ปัจจุบัน -->
+        <div id="uploader-info" class="uploader-info" style="display:none;">
+            อัพโหลดโดย: <span id="uploader-name">-</span>
+        </div>
+
         <div class="playlist-container">
             <?php if (empty($playlist_items)): ?>
-                <div class="no-content-message">
-                    <h2 class="text-warning mb-3">⚠️ ไม่พบ Content</h2>
-                    <p class="text-light">ยังไม่มี Content ที่สามารถเล่นบนอุปกรณ์นี้ในเวลาปัจจุบัน</p>
-                    <a href="device_status.php" class="btn btn-outline-light mt-3">
-                        <i class="bi bi-arrow-left"></i> กลับไป
-                    </a>
-                </div>
+                <h2 class="text-danger">❌ ไม่พบ Content ที่กำลังเล่นในขณะนี้</h2>
             <?php endif; ?>
 
             <?php foreach ($playlist_items as $index => $item): ?>
-                <div class="content-item" data-index="<?php echo $index; ?>" 
+                <div class="content-item" 
+                     data-index="<?php echo $index; ?>" 
                      data-type="<?php echo $item['content_type']; ?>" 
-                     data-duration="<?php echo $item['duration_seconds']; ?>">
+                     data-duration="<?php echo $item['duration_seconds']; ?>"
+                     data-uploader="<?php echo htmlspecialchars($item['uploader_name']); ?>">
                     
                     <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
                     
@@ -212,12 +215,15 @@ $playlist_stmt->close();
     <script>
         const appContainer = document.getElementById('app-container');
         const infoOverlay = document.getElementById('info-overlay');
+        const uploaderInfo = document.getElementById('uploader-info');
+        const uploaderName = document.getElementById('uploader-name');
         const items = document.querySelectorAll('.content-item');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
         let currentIndex = 0;
         let timeout;
 
+        // --- Fullscreen Logic ---
         function enterFullScreen(element) {
             if (element.requestFullscreen) {
                 element.requestFullscreen();
@@ -270,9 +276,11 @@ $playlist_stmt->close();
         document.addEventListener('mozfullscreenchange', handleFullscreenChange);
         document.addEventListener('msfullscreenchange', handleFullscreenChange);
 
+        // --- Playlist Playback Logic ---
         if (items.length > 0) {
             
             function showContent(index) {
+                // ซ่อนทั้งหมด
                 items.forEach((item, i) => {
                     item.classList.remove('active');
                     if (item.querySelector('video')) {
@@ -281,8 +289,14 @@ $playlist_stmt->close();
                     }
                 });
 
+                // แสดง Content ปัจจุบัน
                 const currentItem = items[index];
                 currentItem.classList.add('active');
+
+                // แสดงชื่อผู้อัพโหลด
+                const uploaderText = currentItem.dataset.uploader;
+                uploaderName.textContent = uploaderText || 'ไม่ระบุ';
+                uploaderInfo.style.display = 'block';
 
                 const type = currentItem.dataset.type;
                 let duration = parseInt(currentItem.dataset.duration) * 1000;
@@ -306,6 +320,7 @@ $playlist_stmt->close();
                     });
 
                 } else {
+                    // ภาพนิ่ง
                     if (duration === 0 || isNaN(duration)) {
                         duration = 10000; 
                     }
@@ -319,7 +334,10 @@ $playlist_stmt->close();
                 showContent(currentIndex);
             }
 
+            // เริ่มต้น
             showContent(currentIndex);
+        } else {
+            uploaderInfo.style.display = 'none';
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

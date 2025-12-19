@@ -1,0 +1,220 @@
+/* การตั้งค่าพื้นฐาน */
+body {
+    font-family: 'Sarabun', sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    transition: all 0.3s;
+}
+
+/* Sidebar พื้นฐาน */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 250px;
+    background-image: linear-gradient(45deg, rgb(96, 107, 255)  , rgb(23, 0, 124));
+    color: white;
+    padding-top: 20px;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+}
+
+.sidebar a {
+    color: #ffffff;
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+    transition: all 0.3s;
+}
+
+.sidebar a:hover, .sidebar a.active {
+    background-color: #495057;
+    color: #1abc9c;
+    border-left: 4px solid #1abc9c;
+}
+
+
+/* พื้นที่เนื้อหา */
+.content-area {
+    margin-left: 250px;
+    min-height: 100vh;
+    padding: 30px;
+    transition: margin-left 0.3s ease;
+}
+
+/* ปุ่ม Toggle Sidebar (สวยงามและปรากฏเฉพาะจอเล็ก) */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1100;
+    background: #1abc9c;
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    transition: background 0.3s;
+}
+
+.sidebar-toggle:hover {
+    background: #16a085;
+}
+
+/* Overlay พื้นหลังเวลาเปิดเมนูบนมือถือ */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+}
+
+/* --- Responsive Breakpoints --- */
+
+@media (max-width: 1040px) {
+    .content-area { padding: 20px; }
+}
+
+@media (max-width: 720px) {
+    .sidebar { transform: translateX(-250px); }
+    .sidebar.active { transform: translateX(0); }
+    .content-area { margin-left: 0; padding-top: 80px; }
+    .sidebar-toggle { display: flex; } /* แสดงปุ่ม */
+    .sidebar-overlay.active { display: block; }
+}
+
+@media (max-width: 640px) {
+    .card-body { padding: 15px; }
+    h2 { font-size: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+    .btn-sm { width: 100%; margin-bottom: 5px; }
+    .table th, .table td { font-size: 0.85rem; padding: 8px 5px; }
+}
+
+/* การจัดการตาราง (ส่วนที่วงไว้) */
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+.user-profile { 
+    padding: 15px; 
+    text-align: center; 
+    background-image: linear-gradient(90deg, rgb(182, 100, 155)  , rgb(80, 0, 67));
+    margin: 0 10px 20px; 
+    border-radius: 10px; 
+}
+.profile-initial { 
+    width: 50px; 
+    height: 50px; 
+    background: #1abc9c; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    margin: 0 auto 10px; 
+    font-weight: bold; 
+}
+
+.dashboard-grid { 
+    display: grid; 
+    gap: 20px; 
+    margin-top: 20px; 
+}
+.dashboard-card { 
+    background: white; 
+    padding: 25px; 
+    border-radius: 10px; 
+    text-align: center; 
+    text-decoration: none; 
+    color: #333; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+}
+
+
+/* สไตล์สำหรับ Footer ใน Content Area (ใช้ margin-top: auto) */
+.footer-content-area {
+    width: 100%;
+    padding: 10px 0 0; /* เว้นระยะด้านบน */
+    margin-top: auto; /* [สำคัญ] ผลัก Footer ลงด้านล่างสุดของ content-area */
+    text-align: right; /* ชิดขวา */
+    font-size: 0.75rem; 
+    color: #555; 
+    border-top: 1px solid #e0e0e0;
+    /* Footer ไม่มีพื้นหลัง/กรอบ เพื่อให้กลมกลืน */
+}
+
+/* Responsive Adjustments: สำหรับ Mobile/Tablet (≤768px) */
+@media (max-width: 768px) {
+    /* สไตล์สำหรับ content-area ถูกจัดการใน responsive_admin.css แล้ว */
+
+    /* ปรับ Footer สำหรับหน้าจอแคบ */
+    .footer-content-area {
+        font-size: 0.65rem;
+        text-align: right;
+        padding-top: 10px; 
+        /* อนุญาตให้ข้อความขึ้นบรรทัดใหม่ */
+        white-space: normal; 
+    }
+}
+
+/* Responsive Adjustments: สำหรับ Mobile Phones (≤640px) */
+@media (max-width: 640px) {
+    .footer-content-area {
+        font-size: 0.6rem;
+        padding-top: 5px; /* ลด padding ลง */
+    }
+}
+
+/* สไตล์สำหรับ Footer ใน Content Area - แก้ไขให้อยู่ด้านล่างขวาสุด */
+.footer-content-area {
+    position: relative;
+    width: auto;
+    padding: 15px 30px;
+    text-align: right;
+    font-size: 0.75rem; 
+    color: #555; 
+    background: #f4f7f6;
+    border-top: 1px solid #e0e0e0;
+    z-index: 10;
+}
+
+/* Responsive Adjustments: สำหรับ Mobile/Tablet (≤768px) */
+@media (max-width: 768px) {
+    .content-area { 
+        padding-bottom: 70px; /* เพิ่มพื้นที่สำหรับ Footer บนมือถือ */
+    }
+    
+    .footer-content-area {
+        font-size: 0.65rem;
+        left: 0;
+        padding: 12px 20px;
+    }
+}
+
+/* Responsive Adjustments: สำหรับ Mobile Phones (≤640px) */
+@media (max-width: 640px) {
+    .content-area { 
+        padding-bottom: 60px; /* เพิ่มพื้นที่สำหรับ Footer บนมือถือเล็ก */
+    }
+    
+    .footer-content-area {
+        font-size: 0.6rem;
+        padding: 10px 15px;
+    }
+}

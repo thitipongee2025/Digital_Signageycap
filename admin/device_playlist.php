@@ -24,10 +24,11 @@ if (!$device_info) {
     die("ไม่พบอุปกรณ์ ID: " . $device_id);
 }
 
-// 2. ดึง Content สำหรับ Playlist
-// เงื่อนไข: 
+// 2. ดึง Content สำหรับ Playlist พร้อมข้อมูลผู้อัพโหลด
+// เงื่อนไข:
 // 1. เชื่อมกับ device_content ด้วย device_id 
 // 2. เวลาปัจจุบันอยู่ระหว่าง start_date และ end_date (ถ้ามีการตั้งค่า)
+// 3. ดึงชื่อผู้อัพโหลดจากตาราง users
 $current_time = date('Y-m-d H:i:s');
 
 $playlist_sql = "
@@ -36,11 +37,15 @@ $playlist_sql = "
         c.filepath, 
         c.content_type, 
         c.duration_seconds,
-        dc.display_order
+        c.upload_by,
+        dc.display_order,
+        u.fullname as uploader_name
     FROM 
         device_content dc
     JOIN 
         contents c ON dc.content_id = c.content_id
+    JOIN 
+        users u ON c.upload_by = u.user_id
     WHERE 
         dc.device_id = ? 
         AND (
@@ -108,7 +113,6 @@ $playlist_stmt->close();
             object-fit: contain; 
         }
         
-        /* --- [CSS แก้ไขสำหรับ Full Screen] --- */
         .info-overlay {
             position: fixed;
             top: 10px;
@@ -122,7 +126,6 @@ $playlist_stmt->close();
             transition: opacity 0.3s; 
         }
         
-        /* ซ่อนข้อความและปุ่มปิด Preview เมื่อเข้าโหมด Full Screen */
         .info-overlay-content {
             display: block;
             transition: opacity 0.3s;
@@ -136,14 +139,32 @@ $playlist_stmt->close();
             opacity: 0;
         }
 
-        /* จัดตำแหน่งปุ่ม Exit Full Screen ให้อยู่ด้านบนซ้ายสุด */
         #exit-fullscreen-btn {
             position: absolute;
             top: 10px;
             left: 10px;
             z-index: 101;
         }
-        /* --- [สิ้นสุด CSS แก้ไข] --- */
+
+        .uploader-badge {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #87ceeb;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            z-index: 99;
+            display: none;
+        }
+
+        :fullscreen .uploader-badge,
+        :-webkit-full-screen .uploader-badge,
+        :-moz-full-screen .uploader-badge,
+        :-ms-full-screen .uploader-badge {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -156,8 +177,9 @@ $playlist_stmt->close();
         <div id="info-overlay" class="info-overlay">
             
             <div id="info-overlay-content" class="info-overlay-content">
-                Playlist Preview: **<?php echo htmlspecialchars($device_info['device_name']); ?>** (<?php echo htmlspecialchars($device_info['location']); ?>) <br>
-                จำนวน Content ที่กำลังเล่น: <span id="content-count"><?php echo count($playlist_items); ?></span>
+                📺 <strong><?php echo htmlspecialchars($device_info['device_name']); ?></strong> 
+                (<?php echo htmlspecialchars($device_info['location']); ?>)<br>
+                จำนวน Content: <span id="content-count"><?php echo count($playlist_items); ?></span> รายการ
                 
                 <button id="fullscreen-btn" class="btn btn-sm btn-outline-warning ms-2 me-1">
                     <i class="bi bi-arrows-fullscreen"></i> เต็มจอ
@@ -169,15 +191,23 @@ $playlist_stmt->close();
             </div>
             
         </div>
+
+        <!-- แสดงชื่อผู้อัพโหลด -->
+        <div id="uploader-badge" class="uploader-badge">
+            <i class="bi bi-person-fill"></i> อัพโหลดโดย: <span id="uploader-text">-</span>
+        </div>
+
         <div class="playlist-container">
             <?php if (empty($playlist_items)): ?>
                 <h2 class="text-danger">❌ ไม่พบ Content ที่กำลังเล่นในขณะนี้</h2>
             <?php endif; ?>
 
             <?php foreach ($playlist_items as $index => $item): ?>
-                <div class="content-item" data-index="<?php echo $index; ?>" 
+                <div class="content-item" 
+                     data-index="<?php echo $index; ?>" 
                      data-type="<?php echo $item['content_type']; ?>" 
-                     data-duration="<?php echo $item['duration_seconds']; ?>">
+                     data-duration="<?php echo $item['duration_seconds']; ?>"
+                     data-uploader="<?php echo htmlspecialchars($item['uploader_name']); ?>">
                     
                     <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
                     
@@ -193,6 +223,8 @@ $playlist_stmt->close();
     <script>
         const appContainer = document.getElementById('app-container');
         const infoOverlay = document.getElementById('info-overlay');
+        const uploaderBadge = document.getElementById('uploader-badge');
+        const uploaderText = document.getElementById('uploader-text');
         const items = document.querySelectorAll('.content-item');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
@@ -224,17 +256,14 @@ $playlist_stmt->close();
             }
         }
 
-        // Event เมื่อคลิกปุ่ม "เต็มจอ"
         fullscreenBtn.addEventListener('click', () => {
             enterFullScreen(appContainer);
         });
 
-        // Event เมื่อคลิกปุ่ม "ออกจากเต็มจอ" (ซึ่งจะปรากฏเมื่อเข้าโหมดเต็มจอแล้ว)
         exitFullscreenBtn.addEventListener('click', () => {
             exitFullScreen();
         });
 
-        // จัดการการแสดง/ซ่อนปุ่มและ Overlay เมื่อสถานะ Fullscreen เปลี่ยน
         function handleFullscreenChange() {
             const isFullscreen = document.fullscreenElement || 
                                  document.webkitFullscreenElement || 
@@ -242,13 +271,13 @@ $playlist_stmt->close();
                                  document.msFullscreenElement;
             
             if (isFullscreen) {
-                // อยู่ในโหมดเต็มหน้าจอ: ซ่อน infoOverlay ทั้งหมด (ยกเว้นปุ่ม Exit ที่เราต้องการให้เห็น)
                 infoOverlay.style.opacity = 0; 
                 exitFullscreenBtn.style.display = 'block';
+                uploaderBadge.style.display = 'none';
             } else {
-                // ออกจากโหมดเต็มหน้าจอ: แสดง infoOverlay กลับมา
                 infoOverlay.style.opacity = 1;
                 exitFullscreenBtn.style.display = 'none';
+                uploaderBadge.style.display = 'block';
             }
         }
 
@@ -258,7 +287,7 @@ $playlist_stmt->close();
         document.addEventListener('msfullscreenchange', handleFullscreenChange);
 
         
-        // --- Playlist Playback Logic (โค้ดเดิม) ---
+        // --- Playlist Playback Logic ---
         if (items.length > 0) {
             
             function showContent(index) {
@@ -267,7 +296,7 @@ $playlist_stmt->close();
                     item.classList.remove('active');
                     if (item.querySelector('video')) {
                         item.querySelector('video').pause();
-                        item.querySelector('video').currentTime = 0; // รีเซ็ตวิดีโอ
+                        item.querySelector('video').currentTime = 0;
                     }
                 });
 
@@ -275,8 +304,13 @@ $playlist_stmt->close();
                 const currentItem = items[index];
                 currentItem.classList.add('active');
 
+                // แสดงชื่อผู้อัพโหลด
+                const uploaderName = currentItem.dataset.uploader;
+                uploaderText.textContent = uploaderName || 'ไม่ระบุ';
+                uploaderBadge.style.display = 'block';
+
                 const type = currentItem.dataset.type;
-                let duration = parseInt(currentItem.dataset.duration) * 1000; // แปลงเป็นมิลลิวินาที
+                let duration = parseInt(currentItem.dataset.duration) * 1000;
 
                 if (type === 'video') {
                     const videoElement = currentItem.querySelector('video');
@@ -313,10 +347,11 @@ $playlist_stmt->close();
 
             // เริ่มต้น
             showContent(currentIndex);
+        } else {
+            uploaderBadge.style.display = 'none';
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 <?php $conn->close(); ?>
-

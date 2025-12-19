@@ -1,0 +1,114 @@
+html, body {
+    height: 100%;
+    font-family: 'Sarabun', sans-serif;
+}
+body { 
+    background-image: url('https://picsum.photos/seed/abstractblue/1920/1080'); /* ภาพพื้นหลัง (ตัวอย่าง) */
+    background-size: cover; 
+    background-position: center; 
+    background-attachment: fixed; /* ตรึงพื้นหลัง */
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh;
+    margin: 0;
+    font-family: 'Sarabun', sans-serif;
+    flex-direction: column;
+    min-height: 100vh;
+}
+.container-main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Card Login Style */
+.auth-card { 
+    max-width: 500px; 
+    padding: 40px; 
+    /* กำหนดพื้นหลังสีขาวและขอบมนเล็กน้อยตามภาพ */
+    background: rgba(255, 255, 255, 0.95); /* เกือบโปร่งใสเล็กน้อย */
+    border-radius: 12px; 
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2); 
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+.auth-card:hover {
+    transform: translateY(-5px); /* เลื่อนขึ้นเล็กน้อยเมื่อเมาส์ชี้ */
+}
+.auth-card h2 {
+    text-align: center;
+    color: #007bff;
+    font-weight: 700;
+    margin-bottom: 40px;
+}
+
+
+/* Heading Style */
+.card-title-custom {
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+/* Input Group Icon */
+.input-group-text {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    background-color: #e9ecef;
+    border-right: none;
+}
+
+/* Input Field (ลบ input-group-text ออกเพราะภาพไม่มี icon) */
+.form-control {
+    height: 45px;
+}
+
+/* Input field (ตามภาพ) - หากคุณต้องการใช้ icon ให้ใช้โค้ดเดิมที่เคยให้ไว้ */
+.form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
+    font-size: clamp(0.9rem, 2vw, 1rem);
+}
+
+.form-control, .input-group-text {
+    font-size: clamp(0.9rem, 2vw, 1rem);
+}
+
+.btn-lg {
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    padding: 0.75rem 1.5rem;
+}
+
+.register-link {
+    font-size: clamp(0.85rem, 2vw, 0.95rem);
+}
+
+.footer {
+    padding: 15px 20px;
+    text-align: center;
+    font-size: clamp(0.75rem, 2vw, 0.85rem);
+    color: rgb(255, 255, 255);
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+@media (max-width: 576px) {
+    .container-main {
+        padding: 15px;
+    }
+    
+    .auth-card {
+        border-radius: 10px;
+    }
+    
+    .mb-3, .mb-4 {
+        margin-bottom: 1rem !important;
+    }
+}
