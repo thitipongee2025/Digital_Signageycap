@@ -218,3 +218,350 @@ body {
         padding: 10px 15px;
     }
 }
+
+/* Responsive Table Styles */
+.table-responsive {
+    overflow-x: visible;
+}
+
+/* Desktop View - แสดงตารางปกติ */
+@media (min-width: 992px) {
+    .content-table-desktop {
+        display: table;
+    }
+    .content-cards-mobile {
+        display: none;
+    }
+}
+
+/* Mobile/Tablet View - แสดงแบบ Card */
+@media (max-width: 991px) {
+    .content-table-desktop {
+        display: none;
+    }
+    
+    .content-cards-mobile {
+        display: block;
+    }
+    
+    .content-card {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .content-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .content-card-number {
+        background: #0d6efd;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .content-card-type {
+        display: inline-block;
+    }
+    
+    .content-card-body {
+        margin-bottom: 12px;
+    }
+    
+    .content-card-row {
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .content-card-row:last-child {
+        border-bottom: none;
+    }
+    
+    .content-card-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 100px;
+        flex-shrink: 0;
+    }
+    
+    .content-card-value {
+        color: #212529;
+        flex-grow: 1;
+        word-break: break-word;
+    }
+    
+    .content-card-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-top: 10px;
+    }
+    
+    .content-card-actions .btn {
+        flex: 1;
+        min-width: 100px;
+    }
+}
+
+/* สำหรับหน้าจอเล็กมาก */
+@media (max-width: 576px) {
+    .content-card-label {
+        min-width: 80px;
+        font-size: 14px;
+    }
+    
+    .content-card-value {
+        font-size: 14px;
+    }
+    
+    .content-card-actions {
+        flex-direction: column;
+    }
+    
+    .content-card-actions .btn {
+        width: 100%;
+    }
+}
+
+/* ปรับปุ่มแก้ไข/ลบ */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn-sm {
+    padding: 5px 10px;
+    font-size: 13px;
+}
+
+@media (max-width: 576px) {
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .action-buttons .btn-sm {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+/* Responsive Device Status Table Styles */
+
+/* Desktop View - แสดงตารางปกติ */
+@media (min-width: 992px) {
+    .device-table-desktop {
+        display: table;
+    }
+    .device-cards-mobile {
+        display: none;
+    }
+}
+
+/* Mobile/Tablet View - แสดงแบบ Card */
+@media (max-width: 991px) {
+    .device-table-desktop {
+        display: none;
+    }
+    
+    .device-cards-mobile {
+        display: block;
+    }
+    
+    .device-card {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 18px;
+        margin-bottom: 18px;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .device-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(0,0,0,0.15);
+    }
+    
+    .device-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .device-card-number {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 15px;
+        box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+    }
+    
+    .device-card-status {
+        display: inline-block;
+    }
+    
+    .device-card-body {
+        margin-bottom: 15px;
+    }
+    
+    .device-card-row {
+        display: flex;
+        padding: 10px 0;
+        border-bottom: 1px solid #f8f9fa;
+        align-items: flex-start;
+    }
+    
+    .device-card-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .device-card-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 110px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .device-card-label i {
+        margin-right: 6px;
+        color: #0d6efd;
+    }
+    
+    .device-card-value {
+        color: #212529;
+        flex-grow: 1;
+        word-break: break-word;
+    }
+    
+    .device-card-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px solid #f0f0f0;
+    }
+    
+    .device-card-actions .btn {
+        flex: 1;
+        min-width: 140px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    
+    /* Badge สำหรับสถานะ */
+    .device-card .badge {
+        font-size: 13px;
+        padding: 6px 12px;
+        font-weight: 500;
+    }
+    
+    /* เพิ่มไอคอนสำหรับข้อมูลต่างๆ */
+    .device-card-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #0d6efd;
+        margin-bottom: 4px;
+    }
+    
+    .device-card-location {
+        font-size: 14px;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+}
+
+/* สำหรับหน้าจอเล็กมาก */
+@media (max-width: 576px) {
+    .device-card {
+        padding: 15px;
+    }
+    
+    .device-card-label {
+        min-width: 95px;
+        font-size: 14px;
+    }
+    
+    .device-card-value {
+        font-size: 14px;
+    }
+    
+    .device-card-actions {
+        flex-direction: column;
+    }
+    
+    .device-card-actions .btn {
+        width: 100%;
+        min-width: 100%;
+    }
+    
+    .device-card-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .device-card-number {
+        margin: 0 auto;
+    }
+}
+
+/* ปรับแต่งปุ่มใน Action Buttons */
+.device-card-actions .btn-info {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%);
+    border: none;
+    color: #000;
+    font-weight: 500;
+}
+
+.device-card-actions .btn-info:hover {
+    background: linear-gradient(135deg, #31d2f2 0%, #0dcaf0 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 202, 240, 0.3);
+}
+
+/* แอนิเมชั่นสำหรับ Badge */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.device-card .badge.bg-success {
+    animation: pulse 2s infinite;
+}

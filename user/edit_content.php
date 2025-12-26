@@ -45,7 +45,7 @@ if (!$content) {
 }
 
 // 5. ดึงรายการอุปกรณ์ที่ได้รับสิทธิ์
-$devices_sql = "SELECT d.device_id, d.device_name FROM devices d 
+$devices_sql = "SELECT d.device_id, d.device_name, d.location FROM devices d 
                 JOIN user_permissions up ON d.device_id = up.device_id 
                 WHERE up.user_id = ? ORDER BY d.device_name";
 $devices_stmt = $conn->prepare($devices_sql);
@@ -56,19 +56,50 @@ $devices_result = $devices_stmt->get_result();
 // 6. จัดการการบันทึกข้อมูล (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $filename = isset($_POST['filename']) ? $_POST['filename'] : '';
-    $device_id = isset($_POST['device_id']) ? (int)$_POST['device_id'] : 0;
+    $selected_device = isset($_POST['device_id']) ? $_POST['device_id'] : '';
     $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
     $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
 
     // ตรวจสอบว่าเลือก device_id หรือไม่
-    if ($device_id > 0) {
-        $update_sql = "UPDATE contents SET filename = ?, device_id = ?, start_date = ?, end_date = ? WHERE content_id = ? AND upload_by = ?";
+    if (!empty($selected_device)) {
+        // Update ข้อมูลพื้นฐานของ content (ไม่รวม device_id)
+        $update_sql = "UPDATE contents SET filename = ?, start_date = ?, end_date = ? WHERE content_id = ? AND upload_by = ?";
         $update_stmt = $conn->prepare($update_sql);
         
         if ($update_stmt) {
-            $update_stmt->bind_param("sissii", $filename, $device_id, $start_date, $end_date, $content_id, $user_id);
+            $update_stmt->bind_param("sssii", $filename, $start_date, $end_date, $content_id, $user_id);
             
             if ($update_stmt->execute()) {
+                // ลบ device_content เดิมทั้งหมด
+                $conn->query("DELETE FROM device_content WHERE content_id = $content_id");
+                
+                // เพิ่ม device_content ใหม่
+                if ($selected_device == 'all_devices') {
+                    // ถ้าเลือก "ทุกอุปกรณ์" ให้ insert ทุกอุปกรณ์ที่ user มีสิทธิ์
+                    $devices_stmt->execute();
+                    $all_devices_result = $devices_stmt->get_result();
+                    
+                    $insert_dc_sql = "INSERT INTO device_content (device_id, content_id, display_order) 
+                                      SELECT ?, ?, COALESCE(MAX(display_order), 0) + 1 FROM device_content WHERE device_id = ?";
+                    $stmt_dc = $conn->prepare($insert_dc_sql);
+                    
+                    while($device_row = $all_devices_result->fetch_assoc()) {
+                        $dev_id = $device_row['device_id'];
+                        $stmt_dc->bind_param("iii", $dev_id, $content_id, $dev_id);
+                        $stmt_dc->execute();
+                    }
+                    $stmt_dc->close();
+                } else {
+                    // เลือกอุปกรณ์เฉพาะ
+                    $device_id_int = (int)$selected_device;
+                    $insert_dc_sql = "INSERT INTO device_content (device_id, content_id, display_order) 
+                                      SELECT ?, ?, COALESCE(MAX(display_order), 0) + 1 FROM device_content WHERE device_id = ?";
+                    $stmt_dc = $conn->prepare($insert_dc_sql);
+                    $stmt_dc->bind_param("iii", $device_id_int, $content_id, $device_id_int);
+                    $stmt_dc->execute();
+                    $stmt_dc->close();
+                }
+                
                 $_SESSION['message'] = ['type' => 'success', 'text' => 'บันทึกการแก้ไขเรียบร้อยแล้ว'];
                 header("Location: my_content.php");
                 exit();
@@ -79,6 +110,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $message = '<div class="alert alert-warning">กรุณาเลือกอุปกรณ์</div>';
     }
+}
+
+// ดึงอุปกรณ์ที่ content นี้กำลังแสดงอยู่
+$current_devices = [];
+$perm_result = $conn->query("SELECT device_id FROM device_content WHERE content_id = $content_id");
+while($row = $perm_result->fetch_assoc()) {
+    $current_devices[] = $row['device_id'];
+}
+
+// กำหนดค่า selected device (ถ้ามีหลายอุปกรณ์ถือว่าเลือก "ทุกอุปกรณ์")
+$selected_device_id = '';
+if (count($current_devices) > 1) {
+    $selected_device_id = 'all_devices';
+} elseif (count($current_devices) == 1) {
+    $selected_device_id = $current_devices[0];
 }
 
 // จัดรูปแบบวันที่สำหรับ HTML Input
@@ -162,19 +208,27 @@ $file_ext = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
                                 <label for="device_id" class="form-label">แสดงผลที่อุปกรณ์</label>
                                 <select class="form-select" id="device_id" name="device_id" required>
                                     <option value="">-- เลือกอุปกรณ์ --</option>
+                                    <option value="all_devices" <?php echo ($selected_device_id == 'all_devices') ? 'selected' : ''; ?>>
+                                        🌐 ทุกอุปกรณ์ที่มีสิทธิ์
+                                    </option>
                                     <?php 
                                     // ต้อง reset pointer ของ result ใหม่
                                     $devices_stmt->execute();
                                     $devices_result = $devices_stmt->get_result();
-                                    $current_device_id = $content['device_id'] ?? 0;
                                     while($dev = $devices_result->fetch_assoc()): 
                                     ?>
                                         <option value="<?php echo $dev['device_id']; ?>" 
-                                            <?php echo ($dev['device_id'] == $current_device_id) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($dev['device_name']); ?>
+                                            <?php echo ($dev['device_id'] == $selected_device_id) ? 'selected' : ''; ?>>
+                                            📍 <?php echo htmlspecialchars($dev['device_name']); ?>
+                                            <?php if (!empty($dev['location'])): ?>
+                                                (<?php echo htmlspecialchars($dev['location']); ?>)
+                                            <?php endif; ?>
                                         </option>
                                     <?php endwhile; ?>
                                 </select>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle"></i> เลือก "ทุกอุปกรณ์" เพื่อแสดงในทุกหน้าจอที่คุณมีสิทธิ์
+                                </small>
                             </div>
                         </div>
 

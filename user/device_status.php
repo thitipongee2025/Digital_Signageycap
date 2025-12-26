@@ -86,30 +86,30 @@ $devices_stmt->close();
     </button>
 
     <div class="sidebar">
-        <div class="sidebar-header">
-        <h5 class="text-center mb-2">📺Digital signage ycap</h5>
-        </div>
-        <div class="user-profile">
-            <div class="profile-initial"><?php echo $logged_in_user['profile_initial']; ?></div>
-            <p class="profile-name"><?php echo $logged_in_user['fullname']; ?></p>
-            <p class="profile-position"><?php echo $logged_in_user['position']; ?></p>
-        </div>
-        <hr class="sidebar-divider">
-        <a href="index.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
-            <i class="bi bi-house-door"></i> Dashboard
-        </a>
-        <a href="my_content.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'my_content.php' ? 'active' : ''; ?>">
-            <i class="bi bi-film"></i> Content ของฉัน
-        </a>
-        <a href="upload.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'upload.php' ? 'active' : ''; ?>">
-            <i class="bi bi-cloud-arrow-up"></i> อัพโหลด Content
-        </a>
-        <a href="device_status.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'device_status.php' ? 'active' : ''; ?>">
-            <i class="bi bi-display"></i> สถานะอุปกรณ์
-        </a>
-        <a href="../logout.php" class="text-danger">
-            <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
-        </a>
+    <div class="sidebar-header">
+    <h5 class="text-center mb-2">📺Digital signage ycap</h5>
+    </div>
+    <div class="user-profile">
+    <div class="profile-initial"><?php echo $logged_in_user['profile_initial']; ?></div>
+    <p class="profile-name"><?php echo $logged_in_user['fullname']; ?></p>
+    <p class="profile-position"><?php echo $logged_in_user['position']; ?></p>
+    </div>
+    <hr class="sidebar-divider">
+    <a href="index.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
+    <i class="bi bi-house-door"></i> Dashboard
+    </a>
+    <a href="my_content.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'my_content.php' ? 'active' : ''; ?>">
+    <i class="bi bi-film"></i> Content ของฉัน
+    </a>
+    <a href="upload.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'upload.php' ? 'active' : ''; ?>">
+    <i class="bi bi-cloud-arrow-up"></i> อัพโหลด Content
+    </a>
+    <a href="device_status.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'device_status.php' ? 'active' : ''; ?>">
+    <i class="bi bi-display"></i> สถานะอุปกรณ์
+    </a>
+    <a href="../logout.php" class="text-danger">
+    <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+    </a>
     </div>
 
     <div class="content-area">
@@ -122,43 +122,98 @@ $devices_stmt->close();
                 </div>
                 <div class="card-body">
                     <?php if ($devices_result->num_rows === 0): ?>
-                        <div class="alert alert-warning">คุณยังไม่ได้รับสิทธิ์ให้เข้าถึงอุปกรณ์ใดๆ กรุณาติดต่อ Admin</div>
-                    <?php else: ?>
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>ชื่ออุปกรณ์</th>
-                                    <th>ตำแหน่งติดตั้ง</th>
-                                    <th>สถานะปัจจุบัน</th>
-                                    <th>Content ใน Playlist</th>
-                                    <th>จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php $i = 1; while($row = $devices_result->fetch_assoc()): ?>
-                                    <tr>
-                                        <td><?php echo $i++; ?></td>
-                                        <td><?php echo htmlspecialchars($row['device_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['location']); ?></td>
-                                        <td>
-                                            <span class="badge bg-<?php echo $row['status'] === 'online' ? 'success' : 'secondary'; ?>">
-                                                <?php echo $row['status'] === 'online' ? '<i class="bi bi-check-circle-fill"></i> ออนไลน์' : '<i class="bi bi-x-circle-fill"></i> ออฟไลน์'; ?>
-                                            </span>
-                                        </td>
-                                        <td><span class="badge bg-primary"><?php echo $row['total_content']; ?> รายการ</span></td>
-                                        <td>
-                                            <div class="action-buttons">
-                                                <a href="playlist_preview.php?device_id=<?php echo $row['device_id']; ?>" class="btn btn-sm btn-info" title="ดูเพลยลิสต์">
-                                                    <i class="bi bi-play-circle"></i> ดูเพลยลิสต์
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    <?php endif; ?>
+    <div class="alert alert-warning">คุณยังไม่ได้รับสิทธิ์ให้เข้าถึงอุปกรณ์ใดๆ กรุณาติดต่อ Admin</div>
+<?php else: ?>
+    <!-- Desktop Table View -->
+    <table class="table table-hover device-table-desktop">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>ชื่ออุปกรณ์</th>
+                <th>ตำแหน่งติดตั้ง</th>
+                <th>สถานะปัจจุบัน</th>
+                <th>Content ใน Playlist</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php $i = 1; while($row = $devices_result->fetch_assoc()): ?>
+                <tr>
+                    <td><?php echo $i++; ?></td>
+                    <td><?php echo htmlspecialchars($row['device_name']); ?></td>
+                    <td><?php echo htmlspecialchars($row['location']); ?></td>
+                    <td>
+                        <span class="badge bg-<?php echo $row['status'] === 'online' ? 'success' : 'secondary'; ?>">
+                            <?php echo $row['status'] === 'online' ? '<i class="bi bi-check-circle-fill"></i> ออนไลน์' : '<i class="bi bi-x-circle-fill"></i> ออฟไลน์'; ?>
+                        </span>
+                    </td>
+                    <td><span class="badge bg-primary"><?php echo $row['total_content']; ?> รายการ</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="playlist_preview.php?device_id=<?php echo $row['device_id']; ?>" class="btn btn-sm btn-info" title="ดูเพลยลิสต์">
+                                <i class="bi bi-play-circle"></i> ดูเพลยลิสต์
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            <?php endwhile; ?>
+        </tbody>
+    </table>
+
+    <!-- Mobile/Tablet Card View -->
+    <div class="device-cards-mobile">
+        <?php 
+        // รีเซ็ตตัวชี้ของ result set กลับไปตำแหน่งเริ่มต้น
+        $devices_result->data_seek(0);
+        $i = 1; 
+        while($row = $devices_result->fetch_assoc()): 
+        ?>
+            <div class="device-card">
+                <div class="device-card-header">
+                    <div class="device-card-number"><?php echo $i++; ?></div>
+                    <span class="badge bg-<?php echo $row['status'] === 'online' ? 'success' : 'secondary'; ?> device-card-status">
+                        <?php echo $row['status'] === 'online' ? '<i class="bi bi-check-circle-fill"></i> ออนไลน์' : '<i class="bi bi-x-circle-fill"></i> ออฟไลน์'; ?>
+                    </span>
+                </div>
+                
+                <div class="device-card-body">
+                    <div class="device-card-row">
+                        <div class="device-card-label">
+                            <i class="bi bi-display"></i> อุปกรณ์:
+                        </div>
+                        <div class="device-card-value">
+                            <strong><?php echo htmlspecialchars($row['device_name']); ?></strong>
+                        </div>
+                    </div>
+                    
+                    <div class="device-card-row">
+                        <div class="device-card-label">
+                            <i class="bi bi-geo-alt"></i> ตำแหน่ง:
+                        </div>
+                        <div class="device-card-value">
+                            <?php echo htmlspecialchars($row['location']); ?>
+                        </div>
+                    </div>
+                    
+                    <div class="device-card-row">
+                        <div class="device-card-label">
+                            <i class="bi bi-collection-play"></i> Content:
+                        </div>
+                        <div class="device-card-value">
+                            <span class="badge bg-primary"><?php echo $row['total_content']; ?> รายการ</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="device-card-actions">
+                    <a href="playlist_preview.php?device_id=<?php echo $row['device_id']; ?>" class="btn btn-info">
+                        <i class="bi bi-play-circle"></i> ดูเพลยลิสต์
+                    </a>
+                </div>
+            </div>
+        <?php endwhile; ?>
+    </div>
+<?php endif; ?>
                 </div>
             </div>
         </div>

@@ -1,11 +1,11 @@
 <?php
-// admin/device_playlist.php - ระบบเล่น Playlist หน้าจอ (ปรับปรุง)
+// user/playlist_preview.php
 include '../config.php';
 
 $device_id = isset($_GET['device_id']) ? (int)$_GET['device_id'] : 0;
 
 if ($device_id === 0) {
-    header("Location: devices.php");
+    header("Location: device_status.php");
     exit();
 }
 
@@ -22,11 +22,14 @@ if (!$device_info) {
     die("ไม่พบอุปกรณ์ ID: " . $device_id);
 }
 
-// 2. ดึง Content สำหรับ Playlist พร้อมข้อมูล upload_by
-// เงื่อนไข:
-// 1. เชื่อมกับ device_content ด้วย device_id
-// 2. เวลาปัจจุบันอยู่ระหว่าง start_date และ end_date
-// 3. ดึงข้อมูลผู้อัพโหลดด้วย
+// ⭐ เพิ่มส่วนนี้: อัพเดทสถานะเป็น online ทันทีที่เปิดหน้า
+$update_status_sql = "UPDATE devices SET status = 'online', last_active = NOW() WHERE device_id = ?";
+$update_stmt = $conn->prepare($update_status_sql);
+$update_stmt->bind_param("i", $device_id);
+$update_stmt->execute();
+$update_stmt->close();
+
+// ดึง Content สำหรับ Playlist ของอุปกรณ์เครื่องนี้โดยเฉพาะ
 $current_time = date('Y-m-d H:i:s');
 
 $playlist_sql = "
@@ -37,13 +40,13 @@ $playlist_sql = "
         c.content_type, 
         c.duration_seconds,
         c.upload_by,
-        dc.display_order,
-        u.fullname as uploader_name
+        u.fullname as uploader_name,
+        dc.display_order
     FROM 
         device_content dc
     JOIN 
         contents c ON dc.content_id = c.content_id
-    JOIN
+    JOIN 
         users u ON c.upload_by = u.user_id
     WHERE 
         dc.device_id = ? 
@@ -52,7 +55,7 @@ $playlist_sql = "
             AND (c.end_date IS NULL OR c.end_date >= ?)
         )
     ORDER BY 
-        dc.display_order ASC
+        dc.display_order ASC, c.content_id DESC
 ";
 
 $playlist_stmt = $conn->prepare($playlist_sql);
@@ -72,275 +75,249 @@ $playlist_stmt->close();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body, html {
-            font-family: 'Sarabun', sans-serif;
-            height: 100%;
-            margin: 0;
-            background-color: #343a40; 
-            color: white;
-            overflow: hidden; 
-        }
-        .playlist-container {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .content-item {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            background-color: black;
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-        }
-        .content-item.active {
-            display: flex;
-            opacity: 1;
-        }
-        .content-item img, 
-        .content-item video {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; 
-        }
-        
-        .info-overlay {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            z-index: 100;
-            font-size: 0.8rem;
-            transition: opacity 0.3s; 
-        }
-        
-        .info-overlay-content {
-            display: block;
-            transition: opacity 0.3s;
-        }
-        
-        :fullscreen .info-overlay-content, 
-        :-webkit-full-screen .info-overlay-content,
-        :-moz-full-screen .info-overlay-content,
-        :-ms-full-screen .info-overlay-content {
-            display: none; 
-            opacity: 0;
-        }
-
-        #exit-fullscreen-btn {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 101;
-        }
-
-        .uploader-info {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            color: #aaa;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            z-index: 99;
-        }
-    </style>
+    <link rel="stylesheet" href="../assets/css/playlist_preview.css">
 </head>
 <body>
-    <div id="app-container">
+    <div id="app-container" style="background-color: #000;">
         
-        <button id="exit-fullscreen-btn" class="btn btn-sm btn-outline-warning text-white" style="display:none;">
+        <button id="exit-fullscreen-btn" class="btn btn-sm btn-warning">
             <i class="bi bi-fullscreen-exit"></i> ออกจากเต็มจอ
         </button>
 
         <div id="info-overlay" class="info-overlay">
-            
-            <div id="info-overlay-content" class="info-overlay-content">
+            <div id="info-overlay-content">
                 <strong>📺 <?php echo htmlspecialchars($device_info['device_name']); ?></strong> 
-                (<?php echo htmlspecialchars($device_info['location']); ?>)<br>
-                จำนวน Content: <span id="content-count"><?php echo count($playlist_items); ?></span> รายการ
+                <span>| <?php echo htmlspecialchars($device_info['location']); ?></span><br>
+                <small>จำนวน Content สำหรับเครื่องนี้: <?php echo count($playlist_items); ?> รายการ</small>
                 
-                <button id="fullscreen-btn" class="btn btn-sm btn-outline-warning ms-2 me-1">
-                    <i class="bi bi-arrows-fullscreen"></i> เต็มจอ
-                </button>
-                
-                <a href="devices.php" class="btn btn-sm btn-outline-light">
-                    <i class="bi bi-x-circle"></i> ปิด
-                </a>
+                <div class="mt-2">
+                    <button id="fullscreen-btn" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-arrows-fullscreen"></i> เต็มจอ
+                    </button>
+                    <a href="device_status.php" class="btn btn-sm btn-outline-light ms-1">
+                        <i class="bi bi-x-circle"></i> ปิด
+                    </a>
+                </div>
             </div>
-            
-        </div>
-
-        <!-- แสดงผู้อัพโหลด Content ปัจจุบัน -->
-        <div id="uploader-info" class="uploader-info" style="display:none;">
-            อัพโหลดโดย: <span id="uploader-name">-</span>
         </div>
 
         <div class="playlist-container">
             <?php if (empty($playlist_items)): ?>
-                <h2 class="text-danger">❌ ไม่พบ Content ที่กำลังเล่นในขณะนี้</h2>
-            <?php endif; ?>
-
-            <?php foreach ($playlist_items as $index => $item): ?>
-                <div class="content-item" 
-                     data-index="<?php echo $index; ?>" 
-                     data-type="<?php echo $item['content_type']; ?>" 
-                     data-duration="<?php echo $item['duration_seconds']; ?>"
-                     data-uploader="<?php echo htmlspecialchars($item['uploader_name']); ?>">
-                    
-                    <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
-                    
-                    <?php if ($item['content_type'] === 'image'): ?>
-                        <img src="<?php echo $file_path; ?>" alt="<?php echo htmlspecialchars($item['filename']); ?>">
-                    <?php elseif ($item['content_type'] === 'video'): ?>
-                        <video id="video-<?php echo $index; ?>" src="<?php echo $file_path; ?>" autoplay muted playsinline></video>
-                    <?php endif; ?>
+                <div class="no-content">
+                    <h2 class="text-danger">❌ ไม่พบ Content ในเครื่องนี้</h2>
+                    <p class="text-white-50">กรุณาเพิ่ม Content สำหรับอุปกรณ์เครื่องนี้</p>
+                    <a href="my_content.php" class="btn btn-primary mt-3">
+                        <i class="bi bi-plus-circle"></i> เพิ่ม Content
+                    </a>
                 </div>
-            <?php endforeach; ?>
+            <?php else: ?>
+                <?php foreach ($playlist_items as $index => $item): ?>
+                    <div class="content-item" 
+                         data-index="<?php echo $index; ?>" 
+                         data-type="<?php echo $item['content_type']; ?>" 
+                         data-duration="<?php echo $item['duration_seconds']; ?>">
+                        
+                        <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
+                        
+                        <?php if ($item['content_type'] === 'image'): ?>
+                            <img src="<?php echo $file_path; ?>" class="content-image" alt="content">
+                        <?php elseif ($item['content_type'] === 'video'): ?>
+                            <video id="video-<?php echo $index; ?>" 
+                                   src="<?php echo $file_path; ?>" 
+                                   muted playsinline class="content-video"></video>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div> 
 
     <script>
+        // ตรวจสอบว่ามี elements ก่อนทำงาน
         const appContainer = document.getElementById('app-container');
         const infoOverlay = document.getElementById('info-overlay');
-        const uploaderInfo = document.getElementById('uploader-info');
-        const uploaderName = document.getElementById('uploader-name');
         const items = document.querySelectorAll('.content-item');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
+        
         let currentIndex = 0;
         let timeout;
 
-        // --- Fullscreen Logic ---
-        function enterFullScreen(element) {
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            } else if (element.mozRequestFullScreen) {
-                element.mozRequestFullScreen();
-            } else if (element.webkitRequestFullscreen) {
-                element.webkitRequestFullscreen();
-            } else if (element.msRequestFullscreen) {
-                element.msRequestFullscreen();
-            }
+        // ⭐ เพิ่มส่วนนี้: ส่งสัญญาณ heartbeat เพื่อรักษาสถานะ online
+        const deviceId = <?php echo $device_id; ?>;
+        
+        function updateDeviceStatus() {
+            fetch('update_device_heartbeat.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    device_id: deviceId
+                })
+            }).catch(err => console.log('Heartbeat error:', err));
         }
 
-        function exitFullScreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.mozCancelFullScreen) {
-                document.mozCancelFullScreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
-        }
+        // ส่ง heartbeat ทันทีเมื่อโหลดหน้า
+        updateDeviceStatus();
+        
+        // ส่ง heartbeat ทุก 30 วินาที
+        const heartbeatInterval = setInterval(updateDeviceStatus, 30000);
 
-        fullscreenBtn.addEventListener('click', () => {
-            enterFullScreen(appContainer);
+        // ตั้งสถานะเป็น offline เมื่อปิดหน้า
+        window.addEventListener('beforeunload', function() {
+            navigator.sendBeacon('update_device_heartbeat.php', 
+                JSON.stringify({
+                    device_id: deviceId,
+                    status: 'offline'
+                })
+            );
         });
 
-        exitFullscreenBtn.addEventListener('click', () => {
-            exitFullScreen();
-        });
-
-        function handleFullscreenChange() {
-            const isFullscreen = document.fullscreenElement || 
-                                 document.webkitFullscreenElement || 
-                                 document.mozFullScreenElement || 
-                                 document.msFullscreenElement;
+        // ตรวจสอบว่ามี content หรือไม่
+        if (items.length === 0) {
+            console.warn('ไม่มี content items ที่จะแสดง');
+            // ซ่อนปุ่มที่ไม่จำเป็น
+            if (exitFullscreenBtn) exitFullscreenBtn.style.display = 'none';
+            if (fullscreenBtn) fullscreenBtn.style.display = 'none';
+        } else {
+            // มี content ให้ทำงานตามปกติ
             
-            if (isFullscreen) {
-                infoOverlay.style.opacity = 0; 
-                exitFullscreenBtn.style.display = 'block';
-            } else {
-                infoOverlay.style.opacity = 1;
-                exitFullscreenBtn.style.display = 'none';
+            // ฟังก์ชันตรวจจับขนาดภาพ/วิดีโอ
+            function detectOrientation() {
+                items.forEach(item => {
+                    const media = item.querySelector('img, video');
+                    if (media) {
+                        if (media.tagName === 'IMG') {
+                            if (media.complete) { 
+                                checkOrientation(media, item); 
+                            } else { 
+                                media.onload = () => checkOrientation(media, item); 
+                            }
+                        } else {
+                            media.onloadedmetadata = () => checkOrientation(media, item);
+                        }
+                    }
+                });
             }
-        }
 
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+            function checkOrientation(media, item) {
+                const width = media.videoWidth || media.naturalWidth;
+                const height = media.videoHeight || media.naturalHeight;
+                if (width > height) { 
+                    item.classList.add('landscape'); 
+                } else { 
+                    item.classList.add('portrait'); 
+                }
+            }
 
-        // --- Playlist Playback Logic ---
-        if (items.length > 0) {
-            
+            detectOrientation();
+
+            // Fullscreen controls
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', () => {
+                    if (appContainer.requestFullscreen) {
+                        appContainer.requestFullscreen();
+                    } else if (appContainer.webkitRequestFullscreen) {
+                        appContainer.webkitRequestFullscreen();
+                    } else if (appContainer.msRequestFullscreen) {
+                        appContainer.msRequestFullscreen();
+                    }
+                });
+            }
+
+            if (exitFullscreenBtn) {
+                exitFullscreenBtn.addEventListener('click', () => {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                });
+            }
+
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+            function handleFullscreenChange() {
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+                if (exitFullscreenBtn) {
+                    exitFullscreenBtn.style.display = 'none';
+                }
+                if (infoOverlay) {
+                    infoOverlay.style.opacity = isFS ? '0' : '1';
+                }
+            }
+
+            if (appContainer) {
+                appContainer.addEventListener('dblclick', () => {
+                    if (document.fullscreenElement || document.webkitFullscreenElement) {
+                        if (exitFullscreenBtn) {
+                            exitFullscreenBtn.style.display = (exitFullscreenBtn.style.display === 'none') ? 'block' : 'none';
+                        }
+                    }
+                });
+            }
+
             function showContent(index) {
-                // ซ่อนทั้งหมด
-                items.forEach((item, i) => {
+                // ตรวจสอบ index ให้อยู่ในช่วงที่ถูกต้อง
+                if (index < 0 || index >= items.length) {
+                    console.error('Invalid index:', index);
+                    return;
+                }
+
+                items.forEach(item => {
                     item.classList.remove('active');
-                    if (item.querySelector('video')) {
-                        item.querySelector('video').pause();
-                        item.querySelector('video').currentTime = 0;
+                    const v = item.querySelector('video');
+                    if (v) { 
+                        v.pause(); 
+                        v.currentTime = 0; 
                     }
                 });
 
-                // แสดง Content ปัจจุบัน
-                const currentItem = items[index];
-                currentItem.classList.add('active');
+                const current = items[index];
+                if (!current) {
+                    console.error('Current item not found at index:', index);
+                    return;
+                }
 
-                // แสดงชื่อผู้อัพโหลด
-                const uploaderText = currentItem.dataset.uploader;
-                uploaderName.textContent = uploaderText || 'ไม่ระบุ';
-                uploaderInfo.style.display = 'block';
-
-                const type = currentItem.dataset.type;
-                let duration = parseInt(currentItem.dataset.duration) * 1000;
+                current.classList.add('active');
+                const type = current.dataset.type;
+                let duration = parseInt(current.dataset.duration) * 1000 || 10000;
 
                 if (type === 'video') {
-                    const videoElement = currentItem.querySelector('video');
-                    
-                    if (duration === 0 || isNaN(duration)) {
-                        videoElement.onended = nextContent;
-                        duration = null; 
-                    } else {
-                        videoElement.onended = null;
-                        timeout = setTimeout(nextContent, duration);
-                    }
-                    
-                    videoElement.play().catch(e => {
-                        console.log("Video playback failed.", e);
-                        if (!duration) {
-                            timeout = setTimeout(nextContent, 5000); 
+                    const video = current.querySelector('video');
+                    if (video) {
+                        video.play().catch(err => {
+                            console.warn('Video play error:', err);
+                        });
+                        
+                        if (parseInt(current.dataset.duration) === 0) { 
+                            video.onended = nextContent; 
+                        } else { 
+                            timeout = setTimeout(nextContent, duration); 
                         }
-                    });
-
-                } else {
-                    // ภาพนิ่ง
-                    if (duration === 0 || isNaN(duration)) {
-                        duration = 10000; 
                     }
+                } else {
                     timeout = setTimeout(nextContent, duration);
                 }
             }
 
             function nextContent() {
+                if (items.length === 0) return;
+                
                 currentIndex = (currentIndex + 1) % items.length;
                 clearTimeout(timeout);
                 showContent(currentIndex);
             }
 
-            // เริ่มต้น
-            showContent(currentIndex);
-        } else {
-            uploaderInfo.style.display = 'none';
+            // เริ่มแสดง content
+            showContent(0);
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 <?php $conn->close(); ?>

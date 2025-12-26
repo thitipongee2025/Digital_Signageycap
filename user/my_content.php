@@ -159,47 +159,108 @@ if (!empty($allowed_device_ids)) {
                     <?php endif; ?>
 
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>ชื่อไฟล์</th>
-                                    <th>ประเภท</th>
-                                    <th>แสดงบนอุปกรณ์</th>
-                                    <th>เริ่ม</th>
-                                    <th>สิ้นสุด</th>
-                                    <th>จัดการ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (!empty($allowed_device_ids) && $content_result && $content_result->num_rows > 0): ?>
-                                    <?php $i = 1; while($row = $content_result->fetch_assoc()): ?>
-                                        <tr>
-                                            <td><?php echo $i++; ?></td>
-                                            <td><?php echo htmlspecialchars($row['filename']); ?></td>
-                                            <td><span class="badge bg-info text-dark"><?php echo ucfirst($row['content_type']); ?></span></td>
-                                            <td><?php echo htmlspecialchars($row['assigned_devices']); ?></td>
-                                            <td><?php echo $row['start_date'] ? date('d/m/Y H:i', strtotime($row['start_date'])) : '-'; ?></td>
-                                            <td><?php echo $row['end_date'] ? date('d/m/Y H:i', strtotime($row['end_date'])) : '-'; ?></td>
-                                            <td>
-                                                <div class="action-buttons">
-                                                    <a href="edit_content.php?id=<?php echo $row['content_id']; ?>" class="btn btn-sm btn-primary" title="แก้ไข">
-                                                        <i class="bi bi-pencil"></i> แก้ไข
-                                                    </a>
-                                                    <a href="delete_content.php?id=<?php echo $row['content_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('คุณแน่ใจหรือไม่ที่จะลบไฟล์นี้?')" title="ลบ">
-                                                        <i class="bi bi-trash"></i> ลบ
-                                                    </a>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endwhile; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted">ไม่พบ Content ที่คุณอัพโหลดในอุปกรณ์ที่ได้รับสิทธิ์</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+    <!-- Desktop Table View -->
+    <table class="table table-hover content-table-desktop">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>ชื่อไฟล์</th>
+                <th>ประเภท</th>
+                <th>แสดงบนอุปกรณ์</th>
+                <th>เริ่ม</th>
+                <th>สิ้นสุด</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (!empty($allowed_device_ids) && $content_result && $content_result->num_rows > 0): ?>
+                <?php $i = 1; while($row = $content_result->fetch_assoc()): ?>
+                    <tr>
+                        <td><?php echo $i++; ?></td>
+                        <td><?php echo htmlspecialchars($row['filename']); ?></td>
+                        <td><span class="badge bg-info text-dark"><?php echo ucfirst($row['content_type']); ?></span></td>
+                        <td><?php echo htmlspecialchars($row['assigned_devices']); ?></td>
+                        <td><?php echo $row['start_date'] ? date('d/m/Y H:i', strtotime($row['start_date'])) : '-'; ?></td>
+                        <td><?php echo $row['end_date'] ? date('d/m/Y H:i', strtotime($row['end_date'])) : '-'; ?></td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="edit_content.php?id=<?php echo $row['content_id']; ?>" class="btn btn-sm btn-primary" title="แก้ไข">
+                                    <i class="bi bi-pencil"></i> แก้ไข
+                                </a>
+                                <a href="delete_content.php?id=<?php echo $row['content_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('คุณแน่ใจหรือไม่ที่จะลบไฟล์นี้?')" title="ลบ">
+                                    <i class="bi bi-trash"></i> ลบ
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="7" class="text-center text-muted">ไม่พบ Content ที่คุณอัพโหลดในอุปกรณ์ที่ได้รับสิทธิ์</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+
+    <!-- Mobile/Tablet Card View -->
+    <div class="content-cards-mobile">
+        <?php if (!empty($allowed_device_ids) && $content_result && $content_result->num_rows > 0): ?>
+            <?php 
+            // รีเซ็ตตัวชี้ของ result set กลับไปตำแหน่งเริ่มต้น
+            $content_result->data_seek(0);
+            $i = 1; 
+            while($row = $content_result->fetch_assoc()): 
+            ?>
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <div class="content-card-number"><?php echo $i++; ?></div>
+                        <span class="badge bg-info text-dark content-card-type">
+                            <?php echo ucfirst($row['content_type']); ?>
+                        </span>
+                    </div>
+                    
+                    <div class="content-card-body">
+                        <div class="content-card-row">
+                            <div class="content-card-label">ชื่อไฟล์:</div>
+                            <div class="content-card-value"><?php echo htmlspecialchars($row['filename']); ?></div>
+                        </div>
+                        
+                        <div class="content-card-row">
+                            <div class="content-card-label">อุปกรณ์:</div>
+                            <div class="content-card-value"><?php echo htmlspecialchars($row['assigned_devices']); ?></div>
+                        </div>
+                        
+                        <div class="content-card-row">
+                            <div class="content-card-label">เริ่ม:</div>
+                            <div class="content-card-value">
+                                <?php echo $row['start_date'] ? date('d/m/Y H:i', strtotime($row['start_date'])) : '-'; ?>
+                            </div>
+                        </div>
+                        
+                        <div class="content-card-row">
+                            <div class="content-card-label">สิ้นสุด:</div>
+                            <div class="content-card-value">
+                                <?php echo $row['end_date'] ? date('d/m/Y H:i', strtotime($row['end_date'])) : '-'; ?>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="content-card-actions">
+                        <a href="edit_content.php?id=<?php echo $row['content_id']; ?>" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> แก้ไข
+                        </a>
+                        <a href="delete_content.php?id=<?php echo $row['content_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('คุณแน่ใจหรือไม่ที่จะลบไฟล์นี้?')">
+                            <i class="bi bi-trash"></i> ลบ
+                        </a>
+                    </div>
+                </div>
+                         <?php endwhile; ?>
+                         <?php else: ?>
+                        <div class="alert alert-secondary text-center">
+                                ไม่พบ Content ที่คุณอัพโหลดในอุปกรณ์ที่ได้รับสิทธิ์
+                        </div>
+                        <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>

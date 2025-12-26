@@ -1,0 +1,386 @@
+/* user-upload.css - สไตล์สำหรับหน้าอัพโหลด Content */
+
+/* ส่วนหัวหน้า */
+.page-header-section {
+    margin-bottom: 20px;
+}
+
+.page-title {
+    color: #2c3e50;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-title i {
+    font-size: 1.3rem;
+}
+
+/* การ์ดหลัก */
+.card {
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 30px;
+    max-width: 850px;
+    width: 100%;
+    border: 1px solid #e0e0e0;
+}
+
+.card-header-custom {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    color: white;
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.card-body {
+    padding: 25px;
+    background: white;
+}
+
+/* หัวข้อส่วนย่อย */
+.section-title {
+    color: #17a2b8;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.section-title i {
+    margin-right: 5px;
+}
+
+/* ฟอร์มอินพุต */
+.form-label {
+    color: #495057;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.form-label i {
+    color: #6c757d;
+    margin-right: 5px;
+}
+
+.form-control, .form-select {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #17a2b8;
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.15);
+    outline: none;
+}
+
+.form-control[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* ข้อความช่วยเหลือ */
+.form-text {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.form-text i {
+    margin-right: 3px;
+}
+
+/* Select อุปกรณ์ */
+.device-select {
+    min-height: 150px;
+    font-size: 0.85rem;
+}
+
+.device-option-all {
+    background-color: #e7f3ff;
+    font-weight: 600;
+    color: #0066cc;
+    padding: 8px 10px;
+}
+
+.device-option {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.device-option:hover {
+    background-color: #f8f9fa;
+}
+
+/* ปุ่มต่างๆ */
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+    margin-top: 20px;
+}
+
+.btn {
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+}
+
+.btn i {
+    margin-right: 5px;
+}
+
+/* Alert Messages */
+.alert {
+    border-radius: 8px;
+    border: none;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    font-size: 0.9rem;
+}
+
+.alert i {
+    margin-right: 8px;
+    font-size: 1rem;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Sidebar Divider */
+.sidebar-divider {
+    border-color: rgba(255, 255, 255, 0.2);
+    margin: 10px 0;
+}
+
+/* ปรับ Spacing */
+.mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+.mt-4 {
+    margin-top: 1.5rem !important;
+}
+
+/* Responsive Design */
+
+/* Tablet (≤1040px) */
+@media (max-width: 1040px) {
+    .card {
+        max-width: 100%;
+    }
+    
+    .page-title {
+        font-size: 1.3rem;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+}
+
+/* Mobile Landscape (≤720px) */
+@media (max-width: 720px) {
+    .card {
+        max-width: 100%;
+    }
+    
+    .card-body {
+        padding: 18px;
+    }
+    
+    .page-title {
+        font-size: 1.2rem;
+    }
+    
+    .card-header-custom {
+        font-size: 0.95rem;
+        padding: 10px 15px;
+    }
+    
+    /* ปรับ Input Date/Time ให้เต็มความกว้างบนมือถือ */
+    .row.g-2 > .col-7,
+    .row.g-2 > .col-5 {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .device-select {
+        min-height: 140px;
+    }
+    
+    /* ปรับปุ่มให้เต็มความกว้าง */
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Mobile Portrait (≤640px) */
+@media (max-width: 640px) {
+    .card-body {
+        padding: 15px;
+    }
+    
+    .page-title {
+        font-size: 1.1rem;
+    }
+    
+    .section-title {
+        font-size: 0.9rem;
+    }
+    
+    .form-label {
+        font-size: 0.85rem;
+    }
+    
+    .form-control, .form-select {
+        font-size: 0.85rem;
+        padding: 7px 10px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+    
+    .device-select {
+        min-height: 130px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Extra Small Devices (≤480px) */
+@media (max-width: 480px) {
+    .card-body {
+        padding: 12px;
+    }
+    
+    .page-title {
+        font-size: 1rem;
+    }
+    
+    .card-header-custom {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+    
+    .form-text {
+        font-size: 0.75rem;
+    }
+    
+    .alert {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+}
+
+/* ปรับการแสดงผล Input Date/Time บนอุปกรณ์ต่างๆ */
+input[type="date"],
+input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* แก้ไขปัญหา Safari iOS */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    display: block;
+    cursor: pointer;
+}
+
+/* ปรับ File Input */
+input[type="file"] {
+    padding: 8px;
+    font-size: 0.9rem;
+}
+
+input[type="file"]::file-selector-button {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+}
+
+input[type="file"]::file-selector-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* ปรับ Gap สำหรับ Responsive */
+@media (max-width: 720px) {
+    .gap-2 {
+        gap: 0.5rem !important;
+    }
+    
+    .g-3 {
+        --bs-gutter-x: 0.75rem;
+        --bs-gutter-y: 0.75rem;
+    }
+}
+
+/* ปรับ row spacing */
+.row.g-2 {
+    --bs-gutter-x: 0.5rem;
+    --bs-gutter-y: 0.5rem;
+}
+
+.row.g-3 {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+}
