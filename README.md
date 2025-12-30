@@ -188,7 +188,6 @@ CREATE TABLE `user_permissions` (
   `up_id` INT(11) NOT NULL AUTO_INCREMENT,
   `user_id` INT(11) NOT NULL,
   `device_id` INT(11) NOT NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`up_id`),
   UNIQUE KEY `unique_user_device` (`user_id`, `device_id`),
   INDEX `idx_user_id` (`user_id`),
