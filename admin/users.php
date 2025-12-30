@@ -65,6 +65,7 @@ $users_result = $conn->query("SELECT user_id, username, fullname, role, work_sta
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -74,6 +75,7 @@ $users_result = $conn->query("SELECT user_id, username, fullname, role, work_sta
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="../assets/css/admin.css" rel="stylesheet">
 </head>
+
 <body>
     <!-- Mobile Menu Toggle -->
     <button class="mobile-menu-toggle" id="mobileMenuToggle">
@@ -92,22 +94,32 @@ $users_result = $conn->query("SELECT user_id, username, fullname, role, work_sta
                 </button>
             </div>
             <hr class="sidebar-divider">
-            
+
             <div class="user-profile">
                 <div class="profile-initial"><?php echo $logged_in_user['profile_initial']; ?></div>
-                <p class="profile-name" title="<?php echo $logged_in_user['fullname']; ?>"><?php echo $logged_in_user['fullname']; ?></p>
+                <p class="profile-name" title="<?php echo $logged_in_user['fullname']; ?>">
+                    <?php echo $logged_in_user['fullname']; ?></p>
                 <p class="profile-position"><?php echo $logged_in_user['position']; ?></p>
             </div>
             <hr class="sidebar-divider">
-            
+
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link" href="index.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="contents.php"><i class="bi bi-folder2-open"></i> จัดการ Content</a></li>
-                <li class="nav-item"><a class="nav-link" href="devices.php"><i class="bi bi-tv"></i> จัดการอุปกรณ์</a></li>
-                <li class="nav-item"><a class="nav-link active" href="users.php"><i class="bi bi-people"></i> จัดการสมาชิก</a></li>
-                <li class="nav-item"><a class="nav-link" href="add_user.php"><i class="bi bi-people"></i> ลงทะเบียนสมาชิก</a></li>
-                <li class="nav-item"><a class="nav-link" href="user_roles.php"><i class="bi bi-key"></i> จัดการสิทธิ์</a></li>
-                <li class="nav-item"><a class="nav-link" href="../logout.php"><i class="bi bi-box-arrow-right"></i> ออกจากระบบ</a></li>
+                <li class="nav-item"><a class="nav-link" href="index.php"><i class="bi bi-speedometer2"></i>
+                        Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="contents.php"><i class="bi bi-folder2-open"></i> จัดการ
+                        Content</a></li>
+                <li class="nav-item"><a class="nav-link" href="devices.php"><i class="bi bi-tv"></i> จัดการอุปกรณ์</a>
+                </li>
+                <li class="nav-item"><a class="nav-link active" href="users.php"><i class="bi bi-people"></i>
+                        จัดการสมาชิก</a></li>
+                <li class="nav-item"><a class="nav-link" href="add_user.php"><i class="bi bi-people"></i>
+                        ลงทะเบียนสมาชิก</a></li>
+                <li class="nav-item"><a class="nav-link" href="user_roles.php"><i class="bi bi-key"></i>
+                        จัดการสิทธิ์</a></li>
+                <li class="nav-item"><a class="nav-link" href="account_status.php"><i class="bi bi-person-lock"></i>
+                        สถานะบัญชี</a></li>
+                <li class="nav-item"><a class="nav-link" href="../logout.php"><i class="bi bi-box-arrow-right"></i>
+                        ออกจากระบบ</a></li>
             </ul>
         </div>
 
@@ -138,68 +150,70 @@ $users_result = $conn->query("SELECT user_id, username, fullname, role, work_sta
                     </thead>
                     <tbody>
                         <?php $i = 1; while($row = $users_result->fetch_assoc()): ?>
-                            <tr>
-                                <td><?php echo $i++; ?></td>
-                                <td>
-                                    <?php echo htmlspecialchars($row['username']); ?>
-                                    <small class="text-muted d-block d-md-none">
-                                        <?php echo htmlspecialchars($row['fullname']); ?>
-                                    </small>
-                                </td>
-                                <td class="hide-mobile"><?php echo htmlspecialchars($row['fullname']); ?></td>
-                                <td class="hide-tablet"><?php echo htmlspecialchars($row['work_status']); ?></td>
-                                <td class="hide-tablet">
-                                    <?php 
+                        <tr>
+                            <td><?php echo $i++; ?></td>
+                            <td>
+                                <?php echo htmlspecialchars($row['username']); ?>
+                                <small class="text-muted d-block d-md-none">
+                                    <?php echo htmlspecialchars($row['fullname']); ?>
+                                </small>
+                            </td>
+                            <td class="hide-mobile"><?php echo htmlspecialchars($row['fullname']); ?></td>
+                            <td class="hide-tablet"><?php echo htmlspecialchars($row['work_status']); ?></td>
+                            <td class="hide-tablet">
+                                <?php 
                                     $pos_agency = htmlspecialchars($row['position']);
                                     if (!empty($row['agency'])) {
                                         $pos_agency .= ' / ' . htmlspecialchars($row['agency']);
                                     }
                                     echo $pos_agency; 
                                     ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php echo $row['role'] === 'admin' ? 'danger' : 'primary'; ?>">
-                                        <?php echo ucfirst($row['role']); ?>
-                                    </span>
-                                </td>
-                                <td class="hide-mobile"><?php echo date('Y-m-d', strtotime($row['created_at'])); ?></td>
-                                <td>
-                                    <div class="action-buttons-group">
-                                        <!-- ปุ่มแก้ไข -->
-                                        <a href="edit_user.php?id=<?php echo $row['user_id']; ?>" 
-                                           class="btn btn-sm btn-warning" 
-                                           title="แก้ไข">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        
-                                        <!-- ปุ่มลบ (ไม่สามารถลบตัวเองได้) -->
-                                        <?php if ($row['user_id'] !== $_SESSION['user_id']): ?>
-                                            <form method="POST" action="users.php" class="d-inline" onsubmit="return confirm('แน่ใจว่าต้องการลบสมาชิก <?php echo htmlspecialchars($row['username']); ?>?');">
-                                                <input type="hidden" name="user_id" value="<?php echo $row['user_id']; ?>">
-                                                <button type="submit" name="delete_user" class="btn btn-sm btn-danger" title="ลบ">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
-                                        <?php else: ?>
-                                            <button class="btn btn-sm btn-secondary" disabled title="ไม่สามารถลบตัวเองได้">
-                                                <i class="bi bi-lock"></i>
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
+                            </td>
+                            <td>
+                                <span class="badge bg-<?php echo $row['role'] === 'admin' ? 'danger' : 'primary'; ?>">
+                                    <?php echo ucfirst($row['role']); ?>
+                                </span>
+                            </td>
+                            <td class="hide-mobile"><?php echo date('Y-m-d', strtotime($row['created_at'])); ?></td>
+                            <td>
+                                <div class="action-buttons-group">
+                                    <!-- ปุ่มแก้ไข -->
+                                    <a href="edit_user.php?id=<?php echo $row['user_id']; ?>"
+                                        class="btn btn-sm btn-warning" title="แก้ไข">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <!-- ปุ่มลบ (ไม่สามารถลบตัวเองได้) -->
+                                    <?php if ($row['user_id'] !== $_SESSION['user_id']): ?>
+                                    <form method="POST" action="users.php" class="d-inline"
+                                        onsubmit="return confirm('แน่ใจว่าต้องการลบสมาชิก <?php echo htmlspecialchars($row['username']); ?>?');">
+                                        <input type="hidden" name="user_id" value="<?php echo $row['user_id']; ?>">
+                                        <button type="submit" name="delete_user" class="btn btn-sm btn-danger"
+                                            title="ลบ">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    <?php else: ?>
+                                    <button class="btn btn-sm btn-secondary" disabled title="ไม่สามารถลบตัวเองได้">
+                                        <i class="bi bi-lock"></i>
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>
             </div>
             <div class="footer-content-area">
                 <h6>&copy; จัดทำโดย นายฐิติพงศ์ ภาสวร โครงการทดลองจ้างงานบุคคลออทิสติก รุ่นที่13</h6>
-            </div> 
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/responsive_sidebar.js"></script>
 </body>
+
 </html>
 <?php $conn->close(); ?>

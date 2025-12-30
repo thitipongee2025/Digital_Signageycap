@@ -6,6 +6,9 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// ตรวจสอบสถานะบัญชี
+checkAccountStatus($conn, $_SESSION['user_id']);
+
 $user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['role'];
 $message = '';
@@ -156,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
 ?>
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -166,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
     <link rel="stylesheet" href="../assets/css/user-panel.css">
     <link rel="stylesheet" href="../assets/css/user-upload.css">
 </head>
+
 <body>
     <!-- Sidebar Toggle Button -->
     <button class="sidebar-toggle" id="sidebarToggle">
@@ -182,34 +187,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
                 <h5 class="text-center mb-2">📺 Digital signage ycap</h5>
                 <hr class="sidebar-divider">
             </div>
-            
+
             <!-- User Profile -->
             <div class="user-profile">
                 <div class="profile-initial"><?php echo $logged_in_user['profile_initial']; ?></div>
-                <p class="profile-name" title="<?php echo $logged_in_user['fullname']; ?>"><?php echo $logged_in_user['fullname']; ?></p>
+                <p class="profile-name" title="<?php echo $logged_in_user['fullname']; ?>">
+                    <?php echo $logged_in_user['fullname']; ?></p>
                 <p class="profile-position"><?php echo $logged_in_user['position']; ?></p>
             </div>
             <hr class="sidebar-divider">
-            
+
             <!-- Navigation Menu -->
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a href="index.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
+                    <a href="index.php"
+                        class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>">
                         <i class="bi bi-house-door"></i> Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="my_content.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'my_content.php' ? 'active' : ''; ?>">
+                    <a href="my_content.php"
+                        class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'my_content.php' ? 'active' : ''; ?>">
                         <i class="bi bi-film"></i> Content ของฉัน
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="upload.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'upload.php' ? 'active' : ''; ?>">
+                    <a href="upload.php"
+                        class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'upload.php' ? 'active' : ''; ?>">
                         <i class="bi bi-cloud-arrow-up"></i> อัพโหลด Content
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="device_status.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'device_status.php' ? 'active' : ''; ?>">
+                    <a href="device_status.php"
+                        class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'device_status.php' ? 'active' : ''; ?>">
                         <i class="bi bi-display"></i> สถานะอุปกรณ์
                     </a>
                 </li>
@@ -224,29 +234,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
         <!-- Content Area -->
         <div class="content-area" id="contentArea">
             <h1 class="mb-4 page-title"><i class="bi bi-cloud-upload-fill"></i> อัพโหลด Content ใหม่</h1>
-            
+
             <?php echo $message; ?>
-            
+
             <div class="card shadow border-0">
                 <div class="card-header card-header-custom">
                     <i class="bi bi-cloud-upload-fill me-2"></i> ข้อมูล Content
                 </div>
                 <div class="card-body">
                     <form action="upload.php" method="POST" enctype="multipart/form-data">
-                        
+
                         <div class="mb-4">
                             <label for="content_file" class="form-label fw-bold">
                                 <i class="bi bi-file-earmark-arrow-up"></i> เลือกไฟล์
                             </label>
-                            <input type="file" class="form-control" id="content_file" name="content_file" accept=".mp4,.webm,.ogg,.jpg,.jpeg,.png,.gif" required>
+                            <input type="file" class="form-control" id="content_file" name="content_file"
+                                accept=".mp4,.webm,.ogg,.jpg,.jpeg,.png,.gif" required>
                             <small class="form-text text-muted">รองรับ: MP4, WebM, OGG, JPG, PNG, GIF</small>
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="duration_seconds" class="form-label fw-bold">
                                 <i class="bi bi-clock"></i> กำหนดเวลาเล่น (วินาที)
                             </label>
-                            <input type="number" class="form-control" id="duration_seconds" name="duration_seconds" min="0" value="10" required>
+                            <input type="number" class="form-control" id="duration_seconds" name="duration_seconds"
+                                min="0" value="10" required>
                             <small class="form-text text-muted">
                                 <i class="bi bi-info-circle"></i> แนะนำ 10 วินาที สำหรับภาพ, 0 สำหรับวิดีโอ
                             </small>
@@ -255,21 +267,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
                         <h5 class="mt-4 mb-3 border-bottom pb-2 text-info">
                             <i class="bi bi-clock-history"></i> ช่วงเวลาแสดงผล
                         </h5>
-                        
+
                         <div class="row g-3 mb-4">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold">วันที่และเวลาเริ่มแสดงผล</label>
                                 <div class="row g-2">
                                     <div class="col-7">
-                                        <input type="date" class="form-control" id="start_date_only" name="start_date_only">
+                                        <input type="date" class="form-control" id="start_date_only"
+                                            name="start_date_only">
                                     </div>
                                     <div class="col-5">
-                                        <input type="time" class="form-control" id="start_time_only" name="start_time_only" value="00:00">
+                                        <input type="time" class="form-control" id="start_time_only"
+                                            name="start_time_only" value="00:00">
                                     </div>
                                 </div>
                                 <small class="form-text text-muted">(ปล่อยว่าง = แสดงทันที)</small>
                             </div>
-                            
+
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold">วันที่และเวลาสิ้นสุด</label>
                                 <div class="row g-2">
@@ -277,7 +291,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
                                         <input type="date" class="form-control" id="end_date_only" name="end_date_only">
                                     </div>
                                     <div class="col-5">
-                                        <input type="time" class="form-control" id="end_time_only" name="end_time_only" value="00:00">
+                                        <input type="time" class="form-control" id="end_time_only" name="end_time_only"
+                                            value="00:00">
                                     </div>
                                 </div>
                                 <small class="form-text text-muted">(ปล่อยว่าง = แสดงตลอดไป)</small>
@@ -287,15 +302,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
                         <h5 class="mt-5 mb-3 border-bottom pb-2 text-info">
                             <i class="bi bi-list-task"></i> อุปกรณ์เป้าหมาย
                         </h5>
-                        
+
                         <div class="mb-4">
                             <select multiple class="form-select" id="devices" name="devices[]" size="8" required>
-                                <option value="all_devices" class="fw-bold text-primary" selected>-- เล่นบนทุกอุปกรณ์ที่ได้รับสิทธิ์ --</option>
+                                <option value="all_devices" class="fw-bold text-primary" selected>--
+                                    เล่นบนทุกอุปกรณ์ที่ได้รับสิทธิ์ --</option>
                                 <?php foreach ($allowed_devices as $device): ?>
                                 <option value="<?php echo $device['device_id']; ?>">
-                                    📍 <?php echo htmlspecialchars($device['device_name']); ?> 
+                                    📍 <?php echo htmlspecialchars($device['device_name']); ?>
                                     <?php if (!empty($device['location'])): ?>
-                                        (<?php echo htmlspecialchars($device['location']); ?>)
+                                    (<?php echo htmlspecialchars($device['location']); ?>)
                                     <?php endif; ?>
                                 </option>
                                 <?php endforeach; ?>
@@ -316,7 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
                     </form>
                 </div>
             </div>
-            
+
             <div class="footer-content-area">
                 <h6>&copy; จัดทำโดย นายฐิติพงศ์ ภาสวร โครงการทดลองจ้างงานบุคคลออทิสติก รุ่นที่13</h6>
             </div>
@@ -327,5 +343,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['content_file'])) {
     <script src="../assets/js/sidebar-menu.js"></script>
     <script src="../assets/js/user-upload.js"></script>
 </body>
+
 </html>
 <?php $conn->close(); ?>

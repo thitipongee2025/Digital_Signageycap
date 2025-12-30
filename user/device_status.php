@@ -6,6 +6,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
     exit();
 }
 
+// ตรวจสอบสถานะบัญชี
+checkAccountStatus($conn, $_SESSION['user_id']);
+
 $user_id = $_SESSION['user_id'];
 $message = '';
 if (isset($_SESSION['message'])) {
@@ -132,7 +135,6 @@ $devices_stmt->close();
                 <th>ชื่ออุปกรณ์</th>
                 <th>ตำแหน่งติดตั้ง</th>
                 <th>สถานะปัจจุบัน</th>
-                <th>Content ใน Playlist</th>
                 <th>จัดการ</th>
             </tr>
         </thead>
@@ -147,7 +149,6 @@ $devices_stmt->close();
                             <?php echo $row['status'] === 'online' ? '<i class="bi bi-check-circle-fill"></i> ออนไลน์' : '<i class="bi bi-x-circle-fill"></i> ออฟไลน์'; ?>
                         </span>
                     </td>
-                    <td><span class="badge bg-primary"><?php echo $row['total_content']; ?> รายการ</span></td>
                     <td>
                         <div class="action-buttons">
                             <a href="playlist_preview.php?device_id=<?php echo $row['device_id']; ?>" class="btn btn-sm btn-info" title="ดูเพลยลิสต์">

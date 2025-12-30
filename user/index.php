@@ -6,6 +6,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
     exit();
 }
 
+// ตรวจสอบสถานะบัญชี
+checkAccountStatus($conn, $_SESSION['user_id']);
+
 $user_id = $_SESSION['user_id'];
 $message = '';
 if (isset($_SESSION['message'])) {

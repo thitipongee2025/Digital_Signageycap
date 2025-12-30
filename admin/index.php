@@ -52,7 +52,29 @@ $active_content_sql = "
         AND (end_date IS NULL OR end_date >= NOW())
 ";
 $active_content = $conn->query($active_content_sql)->fetch_row()[0];
+
+// --- 2. ดึงรายการ Content ทั้งหมด
+$sql = "SELECT c.*, u.username 
+        FROM contents c 
+        LEFT JOIN users u ON c.upload_by = u.user_id 
+        ORDER BY c.created_at DESC";
+$result = $conn->query($sql);
+
+function formatDateTime($dt) {
+    return $dt ? date('Y-m-d H:i', strtotime($dt)) : 'เล่นตลอดไป';
+}
+
+function getDevicesForContent($conn, $content_id) {
+    $devices = $conn->query("SELECT d.device_name FROM device_content dc JOIN devices d ON dc.device_id = d.device_id WHERE dc.content_id = $content_id");
+    $list = [];
+    while($row = $devices->fetch_assoc()) {
+        $list[] = $row['device_name'];
+    }
+    return empty($list) ? 'ไม่ได้กำหนด' : implode(', ', $list);
+
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="th">
@@ -127,6 +149,7 @@ $active_content = $conn->query($active_content_sql)->fetch_row()[0];
                 <li class="nav-item"><a class="nav-link" href="users.php"><i class="bi bi-people"></i> จัดการสมาชิก</a></li>
                 <li class="nav-item"><a class="nav-link" href="add_user.php"><i class="bi bi-people"></i> ลงทะเบียนสมาชิก</a></li>
                 <li class="nav-item"><a class="nav-link" href="user_roles.php"><i class="bi bi-key"></i> จัดการสิทธิ์</a></li>
+                <li class="nav-item"><a class="nav-link" href="account_status.php"><i class="bi bi-person-lock"></i> สถานะบัญชี</a></li>
                 <li class="nav-item"><a class="nav-link" href="../logout.php"><i class="bi bi-box-arrow-right"></i> ออกจากระบบ</a></li>
             </ul>
         </div>
@@ -207,17 +230,62 @@ $active_content = $conn->query($active_content_sql)->fetch_row()[0];
                         </div>
                     </div>
                 </div>
-
-                <!-- Recent Content Table -->
+              <!-- Recent Content Table -->
                 <div class="row">
                     <div class="col-12">
                         <div class="card shadow">
                             <div class="card-header card-header-custom">
                                 <i class="bi bi-clock-history me-2"></i>
-                                Content ที่อัพโหลดล่าสุด
+                                Content ที่อัพโหลดในระบบ
                             </div>
                             <div class="card-body">
-                                <p class="text-muted">ตาราง Content ล่าสุดจะแสดงที่นี่...</p>
+                                <div class="table-responsive">
+                <table class="table table-hover table-striped shadow-sm">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>#</th>
+                            <th>ชื่อไฟล์</th>
+                            <th>ประเภท</th>
+                            <th class="hide-mobile">อัพโหลดโดย</th>
+                            <th class="hide-mobile">วันที่เริ่มแสดง</th>
+                            <th class="hide-mobile">วันที่สิ้นสุด</th>
+                            <th class="hide-tablet">แสดงบนอุปกรณ์</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($result->num_rows > 0): ?>
+                            <?php $i = 1; while($row = $result->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo $i++; ?></td>
+                                    <td>
+                                        <div class="filename-cell">
+                                            <?php echo htmlspecialchars($row['filename']); ?>
+                                        </div>
+                                        <div class="mobile-info">
+                                            <small class="text-muted d-block d-md-none">
+                                                โดย: <?php echo htmlspecialchars($row['username']); ?>
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-<?php echo $row['content_type'] == 'video' ? 'danger' : 'success'; ?>">
+                                            <?php echo ucfirst($row['content_type']); ?>
+                                        </span>
+                                    </td>
+                                    <td class="hide-mobile"><?php echo htmlspecialchars($row['username']); ?></td>
+                                    <td class="hide-mobile"><?php echo formatDateTime($row['start_date']); ?></td>
+                                    <td class="hide-mobile"><?php echo formatDateTime($row['end_date']); ?></td>
+                                    <td class="hide-tablet"><?php echo getDevicesForContent($conn, $row['content_id']); ?></td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="8" class="text-center">ไม่พบ Content ที่อัพโหลด</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
                             </div>
                            
                         </div>

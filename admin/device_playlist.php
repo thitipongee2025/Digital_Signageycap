@@ -70,6 +70,7 @@ $playlist_stmt->close();
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -79,33 +80,34 @@ $playlist_stmt->close();
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/playlist_preview.css">
     <style>
-        /* เพิ่ม style สำหรับ uploader badge */
-        .uploader-badge {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(5px);
-            color: #87ceeb;
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            z-index: 99;
-            display: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(135, 206, 235, 0.3);
-            transition: opacity 0.3s ease;
-        }
+    /* เพิ่ม style สำหรับ uploader badge */
+    .uploader-badge {
+        position: fixed;
+        bottom: 15px;
+        right: 15px;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(5px);
+        color: #87ceeb;
+        padding: 10px 15px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        z-index: 99;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(135, 206, 235, 0.3);
+        transition: opacity 0.3s ease;
+    }
 
-        :fullscreen .uploader-badge {
-            opacity: 0;
-            pointer-events: none;
-        }
+    :fullscreen .uploader-badge {
+        opacity: 0;
+        pointer-events: none;
+    }
     </style>
 </head>
+
 <body>
     <div id="app-container" style="background-color: #000;">
-        
+
         <!-- Uploader Badge (แก้ไข: เพิ่ม HTML element) -->
         <div id="uploader-badge" class="uploader-badge">
             <i class="bi bi-person-circle"></i>
@@ -118,10 +120,10 @@ $playlist_stmt->close();
 
         <div id="info-overlay" class="info-overlay">
             <div id="info-overlay-content">
-                <strong>📺 <?php echo htmlspecialchars($device_info['device_name']); ?></strong> 
+                <strong>📺 <?php echo htmlspecialchars($device_info['device_name']); ?></strong>
                 <span>| <?php echo htmlspecialchars($device_info['location']); ?></span><br>
                 <small>จำนวน Content สำหรับเครื่องนี้: <?php echo count($playlist_items); ?> รายการ</small>
-                
+
                 <div class="mt-2">
                     <button id="fullscreen-btn" class="btn btn-sm btn-outline-warning">
                         <i class="bi bi-arrows-fullscreen"></i> เต็มจอ
@@ -136,187 +138,186 @@ $playlist_stmt->close();
 
         <div class="playlist-container">
             <?php if (empty($playlist_items)): ?>
-                <div class="no-content">
-                    <h2 class="text-danger">❌ ไม่พบ Content ในเครื่องนี้</h2>
-                </div>
+            <div class="no-content">
+                <h2 class="text-danger">❌ ไม่พบ Content ในเครื่องนี้</h2>
+            </div>
             <?php endif; ?>
 
             <?php foreach ($playlist_items as $index => $item): ?>
-                <div class="content-item" 
-                     data-index="<?php echo $index; ?>" 
-                     data-type="<?php echo $item['content_type']; ?>" 
-                     data-duration="<?php echo $item['duration_seconds']; ?>"
-                     data-uploader="<?php echo htmlspecialchars($item['uploader_name']); ?>">
-                    
-                    <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
-                    
-                    <?php if ($item['content_type'] === 'image'): ?>
-                        <img src="<?php echo $file_path; ?>" class="content-image" alt="content">
-                    <?php elseif ($item['content_type'] === 'video'): ?>
-                        <video id="video-<?php echo $index; ?>" 
-                               src="<?php echo $file_path; ?>" 
-                               muted playsinline class="content-video"></video>
-                    <?php endif; ?>
-                </div>
+            <div class="content-item" data-index="<?php echo $index; ?>"
+                data-type="<?php echo $item['content_type']; ?>"
+                data-duration="<?php echo $item['duration_seconds']; ?>"
+                data-uploader="<?php echo htmlspecialchars($item['uploader_name']); ?>">
+
+                <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
+
+                <?php if ($item['content_type'] === 'image'): ?>
+                <img src="<?php echo $file_path; ?>" class="content-image" alt="content">
+                <?php elseif ($item['content_type'] === 'video'): ?>
+                <video id="video-<?php echo $index; ?>" src="<?php echo $file_path; ?>" muted playsinline
+                    class="content-video"></video>
+                <?php endif; ?>
+            </div>
             <?php endforeach; ?>
         </div>
-    </div> 
+    </div>
 
     <script>
-        const appContainer = document.getElementById('app-container');
-        const infoOverlay = document.getElementById('info-overlay');
-        const uploaderBadge = document.getElementById('uploader-badge');
-        const uploaderText = document.getElementById('uploader-text');
-        const items = document.querySelectorAll('.content-item');
-        const fullscreenBtn = document.getElementById('fullscreen-btn');
-        const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
-        let currentIndex = 0;
-        let timeout;
+    const appContainer = document.getElementById('app-container');
+    const infoOverlay = document.getElementById('info-overlay');
+    const uploaderBadge = document.getElementById('uploader-badge');
+    const uploaderText = document.getElementById('uploader-text');
+    const items = document.querySelectorAll('.content-item');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
+    let currentIndex = 0;
+    let timeout;
 
-        // ⭐ เพิ่มส่วนนี้: ส่งสัญญาณ heartbeat ทุก 30 วินาที เพื่อรักษาสถานะ online
-        const deviceId = <?php echo $device_id; ?>;
-        
-        function updateDeviceStatus() {
-            fetch('update_device_heartbeat.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    device_id: deviceId
-                })
-            }).catch(err => console.log('Heartbeat error:', err));
-        }
+    // ⭐ เพิ่มส่วนนี้: ส่งสัญญาณ heartbeat ทุก 30 วินาที เพื่อรักษาสถานะ online
+    const deviceId = <?php echo $device_id; ?>;
 
-        // ส่ง heartbeat ทันทีเมื่อโหลดหน้า
-        updateDeviceStatus();
-        
-        // ส่ง heartbeat ทุก 30 วินาที
-        const heartbeatInterval = setInterval(updateDeviceStatus, 30000);
+    function updateDeviceStatus() {
+        fetch('update_device_heartbeat.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                device_id: deviceId
+            })
+        }).catch(err => console.log('Heartbeat error:', err));
+    }
 
-        // ⭐ เพิ่มส่วนนี้: ตั้งสถานะเป็น offline เมื่อปิดหน้า (ถ้าต้องการ)
-        window.addEventListener('beforeunload', function() {
-            // ใช้ sendBeacon เพื่อส่งข้อมูลก่อนปิดหน้า
-            navigator.sendBeacon('update_device_heartbeat.php', 
-                JSON.stringify({
-                    device_id: deviceId,
-                    status: 'offline'
-                })
-            );
-        });
+    // ส่ง heartbeat ทันทีเมื่อโหลดหน้า
+    updateDeviceStatus();
 
-        // ฟังก์ชันตรวจจับขนาดภาพ/วิดีโอ (Orientation Detection)
-        function detectOrientation() {
-            items.forEach(item => {
-                const media = item.querySelector('img, video');
-                if (media) {
-                    if (media.tagName === 'IMG') {
-                        if (media.complete) { 
-                            checkOrientation(media, item); 
-                        } else { 
-                            media.onload = () => checkOrientation(media, item); 
-                        }
+    // ส่ง heartbeat ทุก 30 วินาที
+    const heartbeatInterval = setInterval(updateDeviceStatus, 30000);
+
+    // ⭐ เพิ่มส่วนนี้: ตั้งสถานะเป็น offline เมื่อปิดหน้า (ถ้าต้องการ)
+    window.addEventListener('beforeunload', function() {
+        // ใช้ sendBeacon เพื่อส่งข้อมูลก่อนปิดหน้า
+        navigator.sendBeacon('update_device_heartbeat.php',
+            JSON.stringify({
+                device_id: deviceId,
+                status: 'offline'
+            })
+        );
+    });
+
+    // ฟังก์ชันตรวจจับขนาดภาพ/วิดีโอ (Orientation Detection)
+    function detectOrientation() {
+        items.forEach(item => {
+            const media = item.querySelector('img, video');
+            if (media) {
+                if (media.tagName === 'IMG') {
+                    if (media.complete) {
+                        checkOrientation(media, item);
                     } else {
-                        media.onloadedmetadata = () => checkOrientation(media, item);
+                        media.onload = () => checkOrientation(media, item);
                     }
+                } else {
+                    media.onloadedmetadata = () => checkOrientation(media, item);
                 }
-            });
+            }
+        });
+    }
+
+    function checkOrientation(media, item) {
+        const width = media.videoWidth || media.naturalWidth;
+        const height = media.videoHeight || media.naturalHeight;
+        if (width > height) {
+            item.classList.add('landscape');
+        } else {
+            item.classList.add('portrait');
+        }
+    }
+
+    // เรียกใช้งานตรวจจับ orientation
+    detectOrientation();
+
+    // Fullscreen Controls
+    fullscreenBtn.addEventListener('click', () => {
+        if (appContainer.requestFullscreen) {
+            appContainer.requestFullscreen();
+        }
+    });
+
+    exitFullscreenBtn.addEventListener('click', () => {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    });
+
+    // จัดการ fullscreen state
+    document.addEventListener('fullscreenchange', () => {
+        const isFS = !!document.fullscreenElement;
+        exitFullscreenBtn.style.display = 'none';
+        infoOverlay.style.opacity = isFS ? '0' : '1';
+        if (uploaderBadge) uploaderBadge.style.opacity = isFS ? '0' : '1';
+    });
+
+    // Double-click เพื่อแสดง/ซ่อนปุ่ม exit fullscreen
+    appContainer.addEventListener('dblclick', () => {
+        if (document.fullscreenElement) {
+            exitFullscreenBtn.style.display = (exitFullscreenBtn.style.display === 'none') ? 'block' : 'none';
+        }
+    });
+
+    // Playlist Playback Logic
+    function showContent(index) {
+        // ซ่อนทั้งหมด
+        items.forEach(item => {
+            item.classList.remove('active');
+            const v = item.querySelector('video');
+            if (v) {
+                v.pause();
+                v.currentTime = 0;
+            }
+        });
+
+        // แสดง Content ปัจจุบัน
+        const current = items[index];
+        current.classList.add('active');
+
+        // แสดงชื่อผู้อัพโหลด (แก้ไข: เพิ่มการตรวจสอบ null)
+        const uploaderName = current.dataset.uploader;
+        if (uploaderText && uploaderBadge) {
+            uploaderText.textContent = uploaderName || 'ไม่ระบุ';
+            uploaderBadge.style.display = 'block';
         }
 
-        function checkOrientation(media, item) {
-            const width = media.videoWidth || media.naturalWidth;
-            const height = media.videoHeight || media.naturalHeight;
-            if (width > height) { 
-                item.classList.add('landscape'); 
-            } else { 
-                item.classList.add('portrait'); 
-            }
-        }
+        const type = current.dataset.type;
+        let duration = parseInt(current.dataset.duration) * 1000 || 10000;
 
-        // เรียกใช้งานตรวจจับ orientation
-        detectOrientation();
+        if (type === 'video') {
+            const video = current.querySelector('video');
+            video.play().catch(() => {});
 
-        // Fullscreen Controls
-        fullscreenBtn.addEventListener('click', () => {
-            if (appContainer.requestFullscreen) {
-                appContainer.requestFullscreen();
-            }
-        });
-
-        exitFullscreenBtn.addEventListener('click', () => {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
-        });
-
-        // จัดการ fullscreen state
-        document.addEventListener('fullscreenchange', () => {
-            const isFS = !!document.fullscreenElement;
-            exitFullscreenBtn.style.display = 'none'; 
-            infoOverlay.style.opacity = isFS ? '0' : '1';
-            if (uploaderBadge) uploaderBadge.style.opacity = isFS ? '0' : '1';
-        });
-
-        // Double-click เพื่อแสดง/ซ่อนปุ่ม exit fullscreen
-        appContainer.addEventListener('dblclick', () => {
-            if (document.fullscreenElement) {
-                exitFullscreenBtn.style.display = (exitFullscreenBtn.style.display === 'none') ? 'block' : 'none';
-            }
-        });
-
-        // Playlist Playback Logic
-        function showContent(index) {
-            // ซ่อนทั้งหมด
-            items.forEach(item => {
-                item.classList.remove('active');
-                const v = item.querySelector('video');
-                if (v) { 
-                    v.pause(); 
-                    v.currentTime = 0; 
-                }
-            });
-
-            // แสดง Content ปัจจุบัน
-            const current = items[index];
-            current.classList.add('active');
-            
-            // แสดงชื่อผู้อัพโหลด (แก้ไข: เพิ่มการตรวจสอบ null)
-            const uploaderName = current.dataset.uploader;
-            if (uploaderText && uploaderBadge) {
-                uploaderText.textContent = uploaderName || 'ไม่ระบุ';
-                uploaderBadge.style.display = 'block';
-            }
-
-            const type = current.dataset.type;
-            let duration = parseInt(current.dataset.duration) * 1000 || 10000;
-
-            if (type === 'video') {
-                const video = current.querySelector('video');
-                video.play().catch(() => {});
-                
-                if (parseInt(current.dataset.duration) === 0) { 
-                    video.onended = nextContent; 
-                } else { 
-                    timeout = setTimeout(nextContent, duration); 
-                }
+            if (parseInt(current.dataset.duration) === 0) {
+                video.onended = nextContent;
             } else {
                 timeout = setTimeout(nextContent, duration);
             }
-        }
-
-        function nextContent() {
-            currentIndex = (currentIndex + 1) % items.length;
-            clearTimeout(timeout);
-            showContent(currentIndex);
-        }
-
-        // เริ่มต้นการเล่น (แก้ไข: เพิ่มการตรวจสอบ null)
-        if (items.length > 0) {
-            showContent(0);
         } else {
-            if (uploaderBadge) uploaderBadge.style.display = 'none';
+            timeout = setTimeout(nextContent, duration);
         }
+    }
+
+    function nextContent() {
+        currentIndex = (currentIndex + 1) % items.length;
+        clearTimeout(timeout);
+        showContent(currentIndex);
+    }
+
+    // เริ่มต้นการเล่น (แก้ไข: เพิ่มการตรวจสอบ null)
+    if (items.length > 0) {
+        showContent(0);
+    } else {
+        if (uploaderBadge) uploaderBadge.style.display = 'none';
+    }
     </script>
 </body>
+
 </html>
 <?php $conn->close(); ?>

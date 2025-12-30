@@ -5,53 +5,38 @@
 session_start(); 
 
 // 2. ข้อมูลการเชื่อมต่อฐานข้อมูล (โปรดตรวจสอบค่าเหล่านี้)
-$servername = "localhost"; // หรือ 127.0.0.1
-$username = "root";        // โดยปกติ XAMPP/WAMP จะใช้ root
-$password = "12345678";            // โดยปกติ XAMPP/WAMP จะไม่มีรหัสผ่าน (ถ้ามี ให้ใส่รหัสผ่านของคุณ)
-$dbname = "digital_signage_db"; // ชื่อฐานข้อมูลของคุณ (ตรวจสอบให้ตรง)
-$port = 3306; // Port มาตรฐานของ MySQL/MariaDB (หากมี Error "actively refused" ให้ลองเปลี่ยนเป็น Port ที่ XAMPP ใช้จริง)
+$servername = "localhost";
+$username = "root";
+$password = "12345678";
+$dbname = "digital_signage_db";
+$port = 3306;
 
-// 3. สร้างการเชื่อมต่อ (เกิด Error ที่บรรทัดนี้: LINE 12)
-// ใช้ $port ใน constructor ด้วยเพื่อความแน่ใจ
+// 3. สร้างการเชื่อมต่อ
 $conn = @new mysqli($servername, $username, $password, $dbname, $port); 
 
 // 4. ตรวจสอบการเชื่อมต่อ
 if ($conn->connect_error) {
-    // ข้อความ Error ที่ปรับปรุงแล้ว
     die("
         <h1 style='color: red;'>❌ Connection Failed!</h1>
-        <p><strong>Error:</strong> ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (Target machine actively refused it).</p>
-        <p><strong>สาเหตุที่พบบ่อย:</strong></p>
-        <ul>
-            <li><strong>XAMPP:</strong> โปรดตรวจสอบ <strong>XAMPP Control Panel</strong> และคลิก <strong>Start</strong> ที่บริการ <strong>MySQL/MariaDB</strong> (ต้องเป็นสีเขียว)</li>
-            <li><strong>Port:</strong> โปรดตรวจสอบว่าค่า <strong>\$port</strong> ใน config.php (\$$port) ตรงกับ Port ที่ MySQL กำลังรันอยู่หรือไม่</li>
-            <li><strong>Database Name:</strong> ตรวจสอบว่า <strong>\$dbname</strong> (\$$dbname) สะกดถูกต้อง</li>
-        </ul>
+        <p><strong>Error:</strong> ไม่สามารถเชื่อมต่อฐานข้อมูลได้</p>
         <p><strong>รายละเอียด:</strong> " . $conn->connect_error . "</p>
     ");
 }
 
-// 5. กำหนดการเข้ารหัสเป็น UTF-8 เพื่อรองรับภาษาไทย
+// 5. กำหนดการเข้ารหัสเป็น UTF-8
 $conn->set_charset("utf8mb4");
 
-// ----------------------------------------------------
 // 6. ฟังก์ชันอำนวยความสะดวก
-// ----------------------------------------------------
-
-// 6.1 ฟังก์ชันสำหรับฟอร์แมตวันที่และเวลาสำหรับผู้ใช้งาน
 function formatDateTimeUser($datetime) {
-    // ถ้าเป็นค่า NULL หรือค่าเริ่มต้นของ MySQL (0000-00-00 00:00:00) ให้แสดงเป็น "ตลอดไป"
     if (is_null($datetime) || $datetime === '0000-00-00 00:00:00') {
         return 'ตลอดไป';
     }
-    // แปลงรูปแบบวันที่เป็น YYYY-MM-DD HH:MM
     return date('Y-m-d H:i', strtotime($datetime));
 }
 
 // 6.2 ฟังก์ชันตรวจสอบสิทธิ์ผู้ดูแลระบบ (Admin)
 function checkAdminLogin() {
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-        // Redirect ไปที่หน้า Login หากไม่ได้เป็น Admin
         $_SESSION['message'] = ['type' => 'danger', 'text' => 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (Admin Required)'];
         header("Location: ../index.php"); 
         exit();
@@ -60,12 +45,94 @@ function checkAdminLogin() {
 
 // 6.3 ฟังก์ชันตรวจสอบสิทธิ์ผู้ใช้งานทั่วไป (User)
 function checkUserLogin() {
-    // ตรวจสอบว่ามีการ Login และเป็นบทบาท 'user' หรือไม่
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
-        // Redirect ไปที่หน้า Login หากไม่ได้เป็น User
         $_SESSION['message'] = ['type' => 'danger', 'text' => 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (User Required)'];
         header("Location: ../index.php"); 
         exit();
     }
+}
+
+// 6.4 ฟังก์ชันตรวจสอบสถานะบัญชี (ใหม่)
+function checkAccountStatus($conn, $user_id) {
+    $sql = "SELECT account_status, fullname FROM users WHERE user_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $user = $result->fetch_assoc();
+        
+        if ($user['account_status'] === 'suspended') {
+            // บัญชีถูกระงับ - แสดงหน้าแจ้งเตือน
+            $fullname = htmlspecialchars($user['fullname']);
+            echo '<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บัญชีถูกระงับ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: "Sarabun", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .suspended-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 500px;
+            text-align: center;
+        }
+        .icon-suspended {
+            font-size: 5rem;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #dc3545;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .alert {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="suspended-card">
+        <i class="bi bi-ban icon-suspended"></i>
+        <h2>บัญชีถูกระงับการใช้งานชั่วคราว</h2>
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>เรียน คุณ' . $fullname . '</strong><br>
+            บัญชีของคุณถูกระงับการใช้งานชั่วคราวโดยผู้ดูแลระบบ
+        </div>
+        <div class="alert alert-info">
+            <strong>หากต้องการเปิดการใช้งานอีกครั้ง:</strong>
+            <ul class="mt-2 mb-0 text-start">
+                <li>ติดต่อผู้ดูแลระบบ (Admin)</li>
+                <li>แจ้งรหัสผู้ใช้งาน: <code>' . $_SESSION['username'] . '</code></li>
+                <li>ระบุเหตุผลในการขอเปิดใช้งาน</li>
+            </ul>
+        </div>
+        <a href="../logout.php" class="btn btn-danger btn-lg w-100 mt-3">
+            <i class="bi bi-box-arrow-right"></i> ออกจากระบบ
+        </a>
+    </div>
+</body>
+</html>';
+            exit();
+        }
+    }
+    $stmt->close();
 }
 ?>

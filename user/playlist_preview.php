@@ -68,6 +68,7 @@ $playlist_stmt->close();
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -77,19 +78,20 @@ $playlist_stmt->close();
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/playlist_preview.css">
 </head>
+
 <body>
     <div id="app-container" style="background-color: #000;">
-        
+
         <button id="exit-fullscreen-btn" class="btn btn-sm btn-warning">
             <i class="bi bi-fullscreen-exit"></i> ออกจากเต็มจอ
         </button>
 
         <div id="info-overlay" class="info-overlay">
             <div id="info-overlay-content">
-                <strong>📺 <?php echo htmlspecialchars($device_info['device_name']); ?></strong> 
+                <strong>📺 <?php echo htmlspecialchars($device_info['device_name']); ?></strong>
                 <span>| <?php echo htmlspecialchars($device_info['location']); ?></span><br>
                 <small>จำนวน Content สำหรับเครื่องนี้: <?php echo count($playlist_items); ?> รายการ</small>
-                
+
                 <div class="mt-2">
                     <button id="fullscreen-btn" class="btn btn-sm btn-outline-warning">
                         <i class="bi bi-arrows-fullscreen"></i> เต็มจอ
@@ -103,221 +105,222 @@ $playlist_stmt->close();
 
         <div class="playlist-container">
             <?php if (empty($playlist_items)): ?>
-                <div class="no-content">
-                    <h2 class="text-danger">❌ ไม่พบ Content ในเครื่องนี้</h2>
-                    <p class="text-white-50">กรุณาเพิ่ม Content สำหรับอุปกรณ์เครื่องนี้</p>
-                    <a href="my_content.php" class="btn btn-primary mt-3">
-                        <i class="bi bi-plus-circle"></i> เพิ่ม Content
-                    </a>
-                </div>
+            <div class="no-content">
+                <h2 class="text-danger">❌ ไม่พบ Content ในเครื่องนี้</h2>
+                <p class="text-white-50">กรุณาเพิ่ม Content สำหรับอุปกรณ์เครื่องนี้</p>
+                <a href="my_content.php" class="btn btn-primary mt-3">
+                    <i class="bi bi-plus-circle"></i> เพิ่ม Content
+                </a>
+            </div>
             <?php else: ?>
-                <?php foreach ($playlist_items as $index => $item): ?>
-                    <div class="content-item" 
-                         data-index="<?php echo $index; ?>" 
-                         data-type="<?php echo $item['content_type']; ?>" 
-                         data-duration="<?php echo $item['duration_seconds']; ?>">
-                        
-                        <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
-                        
-                        <?php if ($item['content_type'] === 'image'): ?>
-                            <img src="<?php echo $file_path; ?>" class="content-image" alt="content">
-                        <?php elseif ($item['content_type'] === 'video'): ?>
-                            <video id="video-<?php echo $index; ?>" 
-                                   src="<?php echo $file_path; ?>" 
-                                   muted playsinline class="content-video"></video>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
+            <?php foreach ($playlist_items as $index => $item): ?>
+            <div class="content-item" data-index="<?php echo $index; ?>"
+                data-type="<?php echo $item['content_type']; ?>"
+                data-duration="<?php echo $item['duration_seconds']; ?>">
+
+                <?php $file_path = '../assets/uploads/' . $item['filepath']; ?>
+
+                <?php if ($item['content_type'] === 'image'): ?>
+                <img src="<?php echo $file_path; ?>" class="content-image" alt="content">
+                <?php elseif ($item['content_type'] === 'video'): ?>
+                <video id="video-<?php echo $index; ?>" src="<?php echo $file_path; ?>" muted playsinline
+                    class="content-video"></video>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
             <?php endif; ?>
         </div>
-    </div> 
+    </div>
 
     <script>
-        // ตรวจสอบว่ามี elements ก่อนทำงาน
-        const appContainer = document.getElementById('app-container');
-        const infoOverlay = document.getElementById('info-overlay');
-        const items = document.querySelectorAll('.content-item');
-        const fullscreenBtn = document.getElementById('fullscreen-btn');
-        const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
-        
-        let currentIndex = 0;
-        let timeout;
+    // ตรวจสอบว่ามี elements ก่อนทำงาน
+    const appContainer = document.getElementById('app-container');
+    const infoOverlay = document.getElementById('info-overlay');
+    const items = document.querySelectorAll('.content-item');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
 
-        // ⭐ เพิ่มส่วนนี้: ส่งสัญญาณ heartbeat เพื่อรักษาสถานะ online
-        const deviceId = <?php echo $device_id; ?>;
-        
-        function updateDeviceStatus() {
-            fetch('update_device_heartbeat.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    device_id: deviceId
-                })
-            }).catch(err => console.log('Heartbeat error:', err));
-        }
+    let currentIndex = 0;
+    let timeout;
 
-        // ส่ง heartbeat ทันทีเมื่อโหลดหน้า
-        updateDeviceStatus();
-        
-        // ส่ง heartbeat ทุก 30 วินาที
-        const heartbeatInterval = setInterval(updateDeviceStatus, 30000);
+    // ⭐ เพิ่มส่วนนี้: ส่งสัญญาณ heartbeat เพื่อรักษาสถานะ online
+    const deviceId = <?php echo $device_id; ?>;
 
-        // ตั้งสถานะเป็น offline เมื่อปิดหน้า
-        window.addEventListener('beforeunload', function() {
-            navigator.sendBeacon('update_device_heartbeat.php', 
-                JSON.stringify({
-                    device_id: deviceId,
-                    status: 'offline'
-                })
-            );
-        });
+    function updateDeviceStatus() {
+        fetch('update_device_heartbeat.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                device_id: deviceId
+            })
+        }).catch(err => console.log('Heartbeat error:', err));
+    }
 
-        // ตรวจสอบว่ามี content หรือไม่
-        if (items.length === 0) {
-            console.warn('ไม่มี content items ที่จะแสดง');
-            // ซ่อนปุ่มที่ไม่จำเป็น
-            if (exitFullscreenBtn) exitFullscreenBtn.style.display = 'none';
-            if (fullscreenBtn) fullscreenBtn.style.display = 'none';
-        } else {
-            // มี content ให้ทำงานตามปกติ
-            
-            // ฟังก์ชันตรวจจับขนาดภาพ/วิดีโอ
-            function detectOrientation() {
-                items.forEach(item => {
-                    const media = item.querySelector('img, video');
-                    if (media) {
-                        if (media.tagName === 'IMG') {
-                            if (media.complete) { 
-                                checkOrientation(media, item); 
-                            } else { 
-                                media.onload = () => checkOrientation(media, item); 
-                            }
+    // ส่ง heartbeat ทันทีเมื่อโหลดหน้า
+    updateDeviceStatus();
+
+    // ส่ง heartbeat ทุก 30 วินาที
+    const heartbeatInterval = setInterval(updateDeviceStatus, 30000);
+
+    // ตั้งสถานะเป็น offline เมื่อปิดหน้า
+    window.addEventListener('beforeunload', function() {
+        navigator.sendBeacon('update_device_heartbeat.php',
+            JSON.stringify({
+                device_id: deviceId,
+                status: 'offline'
+            })
+        );
+    });
+
+    // ตรวจสอบว่ามี content หรือไม่
+    if (items.length === 0) {
+        console.warn('ไม่มี content items ที่จะแสดง');
+        // ซ่อนปุ่มที่ไม่จำเป็น
+        if (exitFullscreenBtn) exitFullscreenBtn.style.display = 'none';
+        if (fullscreenBtn) fullscreenBtn.style.display = 'none';
+    } else {
+        // มี content ให้ทำงานตามปกติ
+
+        // ฟังก์ชันตรวจจับขนาดภาพ/วิดีโอ
+        function detectOrientation() {
+            items.forEach(item => {
+                const media = item.querySelector('img, video');
+                if (media) {
+                    if (media.tagName === 'IMG') {
+                        if (media.complete) {
+                            checkOrientation(media, item);
                         } else {
-                            media.onloadedmetadata = () => checkOrientation(media, item);
+                            media.onload = () => checkOrientation(media, item);
                         }
+                    } else {
+                        media.onloadedmetadata = () => checkOrientation(media, item);
                     }
-                });
-            }
-
-            function checkOrientation(media, item) {
-                const width = media.videoWidth || media.naturalWidth;
-                const height = media.videoHeight || media.naturalHeight;
-                if (width > height) { 
-                    item.classList.add('landscape'); 
-                } else { 
-                    item.classList.add('portrait'); 
                 }
-            }
-
-            detectOrientation();
-
-            // Fullscreen controls
-            if (fullscreenBtn) {
-                fullscreenBtn.addEventListener('click', () => {
-                    if (appContainer.requestFullscreen) {
-                        appContainer.requestFullscreen();
-                    } else if (appContainer.webkitRequestFullscreen) {
-                        appContainer.webkitRequestFullscreen();
-                    } else if (appContainer.msRequestFullscreen) {
-                        appContainer.msRequestFullscreen();
-                    }
-                });
-            }
-
-            if (exitFullscreenBtn) {
-                exitFullscreenBtn.addEventListener('click', () => {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    } else if (document.msExitFullscreen) {
-                        document.msExitFullscreen();
-                    }
-                });
-            }
-
-            document.addEventListener('fullscreenchange', handleFullscreenChange);
-            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.addEventListener('msfullscreenchange', handleFullscreenChange);
-
-            function handleFullscreenChange() {
-                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-                if (exitFullscreenBtn) {
-                    exitFullscreenBtn.style.display = 'none';
-                }
-                if (infoOverlay) {
-                    infoOverlay.style.opacity = isFS ? '0' : '1';
-                }
-            }
-
-            if (appContainer) {
-                appContainer.addEventListener('dblclick', () => {
-                    if (document.fullscreenElement || document.webkitFullscreenElement) {
-                        if (exitFullscreenBtn) {
-                            exitFullscreenBtn.style.display = (exitFullscreenBtn.style.display === 'none') ? 'block' : 'none';
-                        }
-                    }
-                });
-            }
-
-            function showContent(index) {
-                // ตรวจสอบ index ให้อยู่ในช่วงที่ถูกต้อง
-                if (index < 0 || index >= items.length) {
-                    console.error('Invalid index:', index);
-                    return;
-                }
-
-                items.forEach(item => {
-                    item.classList.remove('active');
-                    const v = item.querySelector('video');
-                    if (v) { 
-                        v.pause(); 
-                        v.currentTime = 0; 
-                    }
-                });
-
-                const current = items[index];
-                if (!current) {
-                    console.error('Current item not found at index:', index);
-                    return;
-                }
-
-                current.classList.add('active');
-                const type = current.dataset.type;
-                let duration = parseInt(current.dataset.duration) * 1000 || 10000;
-
-                if (type === 'video') {
-                    const video = current.querySelector('video');
-                    if (video) {
-                        video.play().catch(err => {
-                            console.warn('Video play error:', err);
-                        });
-                        
-                        if (parseInt(current.dataset.duration) === 0) { 
-                            video.onended = nextContent; 
-                        } else { 
-                            timeout = setTimeout(nextContent, duration); 
-                        }
-                    }
-                } else {
-                    timeout = setTimeout(nextContent, duration);
-                }
-            }
-
-            function nextContent() {
-                if (items.length === 0) return;
-                
-                currentIndex = (currentIndex + 1) % items.length;
-                clearTimeout(timeout);
-                showContent(currentIndex);
-            }
-
-            // เริ่มแสดง content
-            showContent(0);
+            });
         }
+
+        function checkOrientation(media, item) {
+            const width = media.videoWidth || media.naturalWidth;
+            const height = media.videoHeight || media.naturalHeight;
+            if (width > height) {
+                item.classList.add('landscape');
+            } else {
+                item.classList.add('portrait');
+            }
+        }
+
+        detectOrientation();
+
+        // Fullscreen controls
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                if (appContainer.requestFullscreen) {
+                    appContainer.requestFullscreen();
+                } else if (appContainer.webkitRequestFullscreen) {
+                    appContainer.webkitRequestFullscreen();
+                } else if (appContainer.msRequestFullscreen) {
+                    appContainer.msRequestFullscreen();
+                }
+            });
+        }
+
+        if (exitFullscreenBtn) {
+            exitFullscreenBtn.addEventListener('click', () => {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            });
+        }
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+        function handleFullscreenChange() {
+            const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document
+                .msFullscreenElement);
+            if (exitFullscreenBtn) {
+                exitFullscreenBtn.style.display = 'none';
+            }
+            if (infoOverlay) {
+                infoOverlay.style.opacity = isFS ? '0' : '1';
+            }
+        }
+
+        if (appContainer) {
+            appContainer.addEventListener('dblclick', () => {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    if (exitFullscreenBtn) {
+                        exitFullscreenBtn.style.display = (exitFullscreenBtn.style.display === 'none') ?
+                            'block' : 'none';
+                    }
+                }
+            });
+        }
+
+        function showContent(index) {
+            // ตรวจสอบ index ให้อยู่ในช่วงที่ถูกต้อง
+            if (index < 0 || index >= items.length) {
+                console.error('Invalid index:', index);
+                return;
+            }
+
+            items.forEach(item => {
+                item.classList.remove('active');
+                const v = item.querySelector('video');
+                if (v) {
+                    v.pause();
+                    v.currentTime = 0;
+                }
+            });
+
+            const current = items[index];
+            if (!current) {
+                console.error('Current item not found at index:', index);
+                return;
+            }
+
+            current.classList.add('active');
+            const type = current.dataset.type;
+            let duration = parseInt(current.dataset.duration) * 1000 || 10000;
+
+            if (type === 'video') {
+                const video = current.querySelector('video');
+                if (video) {
+                    video.play().catch(err => {
+                        console.warn('Video play error:', err);
+                    });
+
+                    if (parseInt(current.dataset.duration) === 0) {
+                        video.onended = nextContent;
+                    } else {
+                        timeout = setTimeout(nextContent, duration);
+                    }
+                }
+            } else {
+                timeout = setTimeout(nextContent, duration);
+            }
+        }
+
+        function nextContent() {
+            if (items.length === 0) return;
+
+            currentIndex = (currentIndex + 1) % items.length;
+            clearTimeout(timeout);
+            showContent(currentIndex);
+        }
+
+        // เริ่มแสดง content
+        showContent(0);
+    }
     </script>
 </body>
+
 </html>
 <?php $conn->close(); ?>
