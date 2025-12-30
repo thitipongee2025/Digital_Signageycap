@@ -185,23 +185,19 @@ CREATE TABLE `device_content` (
 
 -- ตาราง user_permissions
 CREATE TABLE `user_permissions` (
-  `up_id` INT(11) NOT NULL AUTO_INCREMENT,
-  `user_id` INT(11) NOT NULL,
-  `device_id` INT(11) NOT NULL,
+  `up_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `device_id` int(11) NOT NULL,
+  `can_upload` tinyint(1) DEFAULT 1,
+  `can_delete` tinyint(1) DEFAULT 1,
   PRIMARY KEY (`up_id`),
-  UNIQUE KEY `unique_user_device` (`user_id`, `device_id`),
-  INDEX `idx_user_id` (`user_id`),
-  INDEX `idx_device_id` (`device_id`),
-  CONSTRAINT `fk_user_permissions_users` 
-    FOREIGN KEY (`user_id`) 
-    REFERENCES `users` (`user_id`) 
-    ON DELETE CASCADE 
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_user_permissions_devices` 
-    FOREIGN KEY (`device_id`) 
-    REFERENCES `devices` (`device_id`) 
-    ON DELETE CASCADE 
-    ON UPDATE CASCADE
+  UNIQUE KEY `user_device_unique` (`user_id`, `device_id`),
+  KEY `user_id` (`user_id`),
+  KEY `device_id` (`device_id`),
+  CONSTRAINT `user_permissions_ibfk_1` FOREIGN KEY (`user_id`) 
+    REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `user_permissions_ibfk_2` FOREIGN KEY (`device_id`) 
+    REFERENCES `devices` (`device_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- สร้าง Admin User เริ่มต้น (username: admin, password: admin123)
